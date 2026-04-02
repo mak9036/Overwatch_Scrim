@@ -360,11 +360,7 @@ function AccountProfilePageContent() {
         onSubmit={onSubmit}
         className="min-h-screen w-full space-y-6 bg-gradient-to-br from-black via-zinc-900 to-black p-6"
       >
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/" className="inline-flex items-center gap-3 text-orange-400 hover:text-orange-300">
-            <span className="text-2xl">⚔️</span>
-          </Link>
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-end gap-3">
             <NotificationCenter />
             <button
               type="button"
@@ -373,7 +369,6 @@ function AccountProfilePageContent() {
             >
               LOG OUT
             </button>
-          </div>
         </div>
 
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-6 py-5">
