@@ -3,6 +3,8 @@ const path = require("path");
 const { loadEnvConfig } = require("@next/env");
 
 loadEnvConfig(process.cwd());
+console.log("CWD:", process.cwd());
+console.log("TOKEN:", process.env.DISCORD_BOT_TOKEN);
 
 const ROOT = process.cwd();
 const DATA_DIR = path.join(ROOT, "data");
