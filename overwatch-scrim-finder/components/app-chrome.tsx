@@ -3,7 +3,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import CookieConsentBanner from "@/components/cookie-consent-banner";
-import LanguageSwitcher from "@/components/language-switcher";
 import SiteHeader from "@/components/site-header";
 import SiteSidebar from "@/components/site-sidebar";
 import { useI18n } from "@/lib/i18n";
@@ -16,7 +15,6 @@ export default function AppChrome({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <LanguageSwitcher />
       <SiteHeader />
       <div className="flex flex-1 flex-col lg:flex-row">
         <SiteSidebar />

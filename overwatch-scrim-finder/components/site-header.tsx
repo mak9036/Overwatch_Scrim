@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import LanguageSwitcher from "@/components/language-switcher";
 import NotificationCenter from "@/components/notification-center";
 import { useI18n } from "@/lib/i18n";
 
@@ -118,7 +119,8 @@ export default function SiteHeader({ active, accountName, accountAvatarUrl, onLo
         </Link>
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-2 text-xs sm:gap-3 sm:text-sm md:mr-24 lg:mr-24 xl:mr-28">
+        <div className="flex flex-wrap items-center justify-end gap-2 text-xs sm:gap-3 sm:text-sm">
+          <LanguageSwitcher />
           <NotificationCenter />
           {resolvedName ? (
             <Link
