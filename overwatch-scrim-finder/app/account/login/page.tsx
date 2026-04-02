@@ -17,8 +17,9 @@ function AccountLoginContent() {
   useEffect(() => {
     const checkExistingSession = async () => {
       try {
-        const response = await fetch("/api/account/session", { cache: "no-store" });
-        if (response.ok) {
+        const response = await fetch("/api/account/session?soft=1", { cache: "no-store" });
+        const data = (await response.json()) as { authenticated?: boolean };
+        if (data.authenticated) {
           router.replace(nextPath);
         }
       } catch {

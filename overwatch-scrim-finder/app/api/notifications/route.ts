@@ -7,6 +7,22 @@ import { getTeamForUser } from "@/lib/teams-store";
 export async function GET(request: NextRequest) {
   const username = getPosterUsernameFromRequest(request);
   if (!username) {
+    if (request.nextUrl.searchParams.get("soft") === "1") {
+      return NextResponse.json(
+        {
+          unreadMessageCount: 0,
+          pendingInviteCount: 0,
+          totalCount: 0,
+          notifications: [],
+        },
+        {
+          headers: {
+            "Cache-Control": "private, max-age=8, stale-while-revalidate=24",
+            Vary: "Cookie",
+          },
+        },
+      );
+    }
     return NextResponse.json({ error: "Please log in first." }, { status: 401 });
   }
 

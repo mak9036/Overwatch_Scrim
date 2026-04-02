@@ -46,27 +46,45 @@ export async function POST(request: Request) {
     );
   }
 
-  const accountRecord = await getAccountRecordByUsername(username);
-  if (!accountRecord) {
-    return NextResponse.json({ error: "No account found with that username." }, { status: 404 });
+  try {
+    const accountRecord = await getAccountRecordByUsername(username);
+    if (!accountRecord) {
+      return NextResponse.json({ error: "No account found with that username." }, { status: 404 });
+    }
+
+    if (!(await isAccountPasswordMatch(accountRecord, password))) {
+      return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
+    }
+
+    const cookieValue = makePosterCookieValueFromStoredAccount(accountRecord);
+
+    const response = NextResponse.json({ ok: true, account: { username: accountRecord.username } });
+    response.cookies.set({
+      name: POSTER_SESSION_COOKIE_NAME,
+      value: cookieValue,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+
+    return response;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("SESSION_SECRET")) {
+      return NextResponse.json(
+        { error: "Server configuration error: SESSION_SECRET is missing in production." },
+        { status: 500 },
+      );
+    }
+    if (message.includes("EROFS") || message.includes("EACCES") || message.includes("EPERM")) {
+      return NextResponse.json(
+        { error: "Server storage is not writable in this environment." },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({ error: "Internal server error while logging in." }, { status: 500 });
   }
-
-  if (!(await isAccountPasswordMatch(accountRecord, password))) {
-    return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
-  }
-
-  const cookieValue = makePosterCookieValueFromStoredAccount(accountRecord);
-
-  const response = NextResponse.json({ ok: true, account: { username: accountRecord.username } });
-  response.cookies.set({
-    name: POSTER_SESSION_COOKIE_NAME,
-    value: cookieValue,
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
-
-  return response;
 }

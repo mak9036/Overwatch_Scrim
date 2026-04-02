@@ -57,14 +57,7 @@ export default function NotificationCenter() {
       }
 
       try {
-        const response = await fetch("/api/notifications");
-        if (response.status === 401) {
-          if (!cancelled) {
-            setVisible(false);
-          }
-          return;
-        }
-
+        const response = await fetch("/api/notifications?soft=1");
         if (!response.ok) {
           return;
         }

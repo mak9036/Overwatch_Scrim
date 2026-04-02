@@ -178,13 +178,15 @@ const sanitizeTeam = (value: unknown): StoredTeam | null => {
     return null;
   }
 
+  const rawAvatarUrl = typeof candidate.avatarUrl === "string" ? candidate.avatarUrl.trim() : "";
+  const normalizedAvatarUrl = rawAvatarUrl.startsWith("/uploads/teams/")
+    ? rawAvatarUrl.replace("/uploads/teams/", "/api/uploads/teams/")
+    : rawAvatarUrl;
+
   return {
     id: typeof candidate.id === "number" ? candidate.id : Date.now(),
     name: candidate.name.trim().slice(0, 64),
-    avatarUrl:
-      typeof candidate.avatarUrl === "string" && candidate.avatarUrl.trim().length > 0
-        ? candidate.avatarUrl.trim().slice(0, 256)
-        : undefined,
+    avatarUrl: normalizedAvatarUrl.length > 0 ? normalizedAvatarUrl.slice(0, 256) : undefined,
     bio:
       typeof candidate.bio === "string" && candidate.bio.trim().length > 0
         ? candidate.bio.trim().slice(0, 280)

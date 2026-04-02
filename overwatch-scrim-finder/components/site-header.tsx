@@ -49,16 +49,17 @@ export default function SiteHeader({ active, accountName, accountAvatarUrl, onLo
 
     const loadSession = async () => {
       try {
-        const response = await fetch("/api/account/session", { cache: "no-store" });
-        if (!response.ok) {
+        const response = await fetch("/api/account/session?soft=1", { cache: "no-store" });
+        const data = (await response.json()) as {
+          authenticated?: boolean;
+          account?: { username?: string; accountProfile?: { avatarUrl?: string } };
+        };
+
+        if (!data.authenticated) {
           setResolvedName("");
           setResolvedAvatar("");
           return;
         }
-
-        const data = (await response.json()) as {
-          account?: { username?: string; accountProfile?: { avatarUrl?: string } };
-        };
 
         setResolvedName(typeof data.account?.username === "string" ? data.account.username : "");
         setResolvedAvatar(
@@ -117,7 +118,7 @@ export default function SiteHeader({ active, accountName, accountAvatarUrl, onLo
         </Link>
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-2 text-xs sm:gap-3 sm:text-sm">
+        <div className="flex flex-wrap items-center justify-end gap-2 text-xs sm:gap-3 sm:text-sm lg:mr-24 xl:mr-28">
           <NotificationCenter />
           {resolvedName ? (
             <Link

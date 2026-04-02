@@ -284,7 +284,13 @@ export const sanitizePosterAccountProfile = (value: unknown): PosterAccountProfi
   const candidate = value as Record<string, unknown>;
   const rawAvatarUrl = normalizeString(candidate.avatarUrl).slice(0, 256);
   // Only allow server-controlled upload paths; reject javascript:, data:, etc.
-  const avatarUrl = rawAvatarUrl.startsWith("/uploads/") && !rawAvatarUrl.includes("..") ? rawAvatarUrl : "";
+  let avatarUrl =
+    (rawAvatarUrl.startsWith("/uploads/") || rawAvatarUrl.startsWith("/api/uploads/")) && !rawAvatarUrl.includes("..")
+      ? rawAvatarUrl
+      : "";
+  if (avatarUrl.startsWith("/uploads/avatars/")) {
+    avatarUrl = avatarUrl.replace("/uploads/avatars/", "/api/uploads/avatars/");
+  }
   const bio = normalizeString(candidate.bio).slice(0, 280);
   const battleTag = normalizeString(candidate.battleTag).slice(0, 48);
   const countryRaw = normalizeString(candidate.country).toUpperCase();

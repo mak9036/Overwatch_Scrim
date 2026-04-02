@@ -85,7 +85,7 @@ export default function RingerPage() {
   useEffect(() => {
     const verifySession = async () => {
       try {
-        const response = await fetch("/api/account/session", { cache: "no-store" });
+        const response = await fetch("/api/account/session?soft=1", { cache: "no-store" });
         if (!response.ok) {
           return;
         }

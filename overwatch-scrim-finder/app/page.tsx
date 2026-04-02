@@ -430,7 +430,7 @@ export default function ScrimFinderApp() {
 
     const loadAccount = async () => {
       try {
-        const response = await fetch("/api/account/session", { cache: "no-store" });
+        const response = await fetch("/api/account/session?soft=1", { cache: "no-store" });
         if (!response.ok) {
           setAccountName("");
           setAccountAvatarUrl("");
@@ -460,7 +460,7 @@ export default function ScrimFinderApp() {
   const openPostMenu = async () => {
     setCheckingAccount(true);
     try {
-      const response = await fetch("/api/account/session", { cache: "no-store" });
+      const response = await fetch("/api/account/session?soft=1", { cache: "no-store" });
       if (!response.ok) {
         setAccountName("");
         setAccountAvatarUrl("");

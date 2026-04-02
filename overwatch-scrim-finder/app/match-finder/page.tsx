@@ -112,7 +112,7 @@ export default function MatchFinderPage() {
     const verifySession = async () => {
       try {
         const [sessionResponse, teamResponse] = await Promise.all([
-          fetch("/api/account/session", { cache: "no-store" }),
+          fetch("/api/account/session?soft=1", { cache: "no-store" }),
           fetch("/api/team", { cache: "no-store" }),
         ]);
 

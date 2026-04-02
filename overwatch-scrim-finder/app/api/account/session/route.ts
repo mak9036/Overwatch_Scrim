@@ -5,6 +5,9 @@ import { getPosterAccountFromRequest } from "@/lib/account-auth";
 export async function GET(request: NextRequest) {
   const account = getPosterAccountFromRequest(request);
   if (!account) {
+    if (request.nextUrl.searchParams.get("soft") === "1") {
+      return NextResponse.json({ authenticated: false }, { status: 200 });
+    }
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 

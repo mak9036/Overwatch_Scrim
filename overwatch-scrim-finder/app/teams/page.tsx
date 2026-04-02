@@ -258,7 +258,7 @@ export default function TeamsPage() {
 
     const loadAccount = async () => {
       try {
-        const res = await fetch("/api/account/session", { cache: "no-store" });
+        const res = await fetch("/api/account/session?soft=1", { cache: "no-store" });
         if (!res.ok) return;
         const data = (await res.json()) as {
           account?: { username?: string; accountProfile?: { avatarUrl?: string } };

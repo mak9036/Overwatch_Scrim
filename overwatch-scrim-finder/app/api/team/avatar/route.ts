@@ -7,6 +7,7 @@ import { getPosterUsernameFromRequest } from "@/lib/account-auth";
 import { getTeamManagedBy, updateTeamAvatar } from "@/lib/teams-store";
 
 const MAX_AVATAR_BYTES = 3 * 1024 * 1024;
+const RUNTIME_UPLOADS_ROOT = join(process.cwd(), "data", "uploads");
 
 const getExtensionFromMime = (mime: string) => {
   if (mime === "image/png") return "png";
@@ -68,7 +69,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "File content does not match the declared image type." }, { status: 400 });
   }
 
-  // Delete previous team avatar to prevent disk exhaustion
+  // Delete previous team avatar to prevent disk exhaustion.
+  // Support both legacy /uploads/... and new /api/uploads/... URL styles.
   const oldAvatarUrl = managedTeam.avatarUrl ?? "";
   if (oldAvatarUrl.startsWith("/uploads/") && !oldAvatarUrl.includes("..")) {
     try {
@@ -78,13 +80,35 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const uploadDirectory = join(process.cwd(), "public", "uploads", "teams");
-  await mkdir(uploadDirectory, { recursive: true });
-  const fileName = `${randomUUID()}.${extension}`;
-  const absolutePath = join(uploadDirectory, fileName);
-  await writeFile(absolutePath, buffer);
+  if (oldAvatarUrl.startsWith("/api/uploads/teams/") && !oldAvatarUrl.includes("..")) {
+    const fileName = oldAvatarUrl.split("/").pop() || "";
+    if (/^[a-f0-9-]+\.(png|jpg|webp|gif)$/i.test(fileName)) {
+      try {
+        await unlink(join(RUNTIME_UPLOADS_ROOT, "teams", fileName));
+      } catch {
+        // File may not exist — ignore
+      }
+    }
+  }
 
-  const avatarUrl = `/uploads/teams/${fileName}`;
+  let avatarUrl = "";
+  try {
+    const uploadDirectory = join(RUNTIME_UPLOADS_ROOT, "teams");
+    await mkdir(uploadDirectory, { recursive: true });
+    const fileName = `${randomUUID()}.${extension}`;
+    const absolutePath = join(uploadDirectory, fileName);
+    await writeFile(absolutePath, buffer);
+    avatarUrl = `/api/uploads/teams/${fileName}`;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("EROFS") || message.includes("EACCES") || message.includes("EPERM")) {
+      return NextResponse.json(
+        { error: "Server storage is not writable in this environment." },
+        { status: 500 },
+      );
+    }
+    return NextResponse.json({ error: "Could not store team avatar image." }, { status: 500 });
+  }
   const team = await updateTeamAvatar(managedTeam.id, username, avatarUrl);
   if (!team) {
     return NextResponse.json({ error: "Could not update team avatar." }, { status: 400 });
