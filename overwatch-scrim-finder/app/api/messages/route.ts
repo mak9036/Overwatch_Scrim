@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getPosterUsernameFromRequest } from "@/lib/account-auth";
 import { getAccountRecordByUsername } from "@/lib/accounts-store";
+import { notifyUserWithDiscordDm } from "@/lib/discord-dm";
 import { getMessagesForUser, sendMessage } from "@/lib/messages-store";
 
 interface SendMessagePayload {
@@ -49,6 +50,16 @@ export async function POST(request: NextRequest) {
   const message = await sendMessage(senderUsername, recipientAccount.username, body);
   if (!message) {
     return NextResponse.json({ error: "Could not send message." }, { status: 400 });
+  }
+
+  try {
+    await notifyUserWithDiscordDm({
+      username: recipientAccount.username,
+      dispatchKey: `${recipientAccount.username.toLowerCase()}|message:${message.id}`,
+      content: `📩 New message from ${senderUsername}: ${message.body.slice(0, 300)}`,
+    });
+  } catch (error) {
+    console.error("[messages] Discord DM failed:", error instanceof Error ? error.message : error);
   }
 
   return NextResponse.json({ message }, { status: 201 });

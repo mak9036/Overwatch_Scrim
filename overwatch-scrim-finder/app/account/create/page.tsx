@@ -3,6 +3,7 @@
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { notifyAppSessionChanged } from "@/lib/client-events";
 
 function AccountCreateContent() {
   const [username, setUsername] = useState("");
@@ -62,6 +63,7 @@ function AccountCreateContent() {
         return;
       }
 
+      notifyAppSessionChanged();
       router.push(nextPath);
       router.refresh();
     } catch {

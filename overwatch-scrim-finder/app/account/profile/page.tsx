@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import NotificationCenter from "@/components/notification-center";
 import CountryFlag from "@/components/country-flag";
+import { notifyAppSessionChanged } from "@/lib/client-events";
 import { COUNTRY_OPTIONS, getCountryLabel } from "@/lib/countries";
 
 const MAIN_ROLE_OPTIONS = [
@@ -286,6 +287,7 @@ function AccountProfilePageContent() {
       }
 
       setSuccess("Profile updated.");
+      notifyAppSessionChanged();
       setSaving(false);
     } catch {
       setError("Could not update profile.");
@@ -324,6 +326,7 @@ function AccountProfilePageContent() {
         setAvatarUrl(data.avatarUrl);
       }
       setSuccess("Avatar uploaded.");
+      notifyAppSessionChanged();
       setUploadingAvatar(false);
     } catch {
       setError("Could not upload avatar.");
@@ -336,6 +339,7 @@ function AccountProfilePageContent() {
   const handleLogout = async () => {
     try {
       await fetch("/api/account/logout", { method: "POST" });
+      notifyAppSessionChanged();
     } finally {
       router.replace("/");
       router.refresh();

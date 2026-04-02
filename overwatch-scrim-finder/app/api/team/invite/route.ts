@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getPosterAccountFromRequest } from "@/lib/account-auth";
 import { getAccountRecordByUsername } from "@/lib/accounts-store";
+import { notifyUserWithDiscordDm } from "@/lib/discord-dm";
 import { getTeamForUser, getTeamManagedBy, inviteUserToTeam } from "@/lib/teams-store";
 
 interface InvitePayload {
@@ -43,6 +44,20 @@ export async function POST(request: NextRequest) {
   const updatedTeam = await inviteUserToTeam(team.id, managerUsername, accountToInvite.username);
   if (!updatedTeam) {
     return NextResponse.json({ error: "Could not send invite." }, { status: 400 });
+  }
+
+  const createdInvite = updatedTeam.invites.find((invite) => invite.username.toLowerCase() === accountToInvite.username.toLowerCase());
+
+  if (createdInvite) {
+    try {
+      await notifyUserWithDiscordDm({
+        username: accountToInvite.username,
+        dispatchKey: `${accountToInvite.username.toLowerCase()}|invite:${updatedTeam.id}:${createdInvite.createdAt}:${accountToInvite.username.toLowerCase()}`,
+        content: `🎮 Team invite from ${managerUsername} to join ${updatedTeam.name}. Check your team page to respond.`,
+      });
+    } catch (error) {
+      console.error("[team-invite] Discord DM failed:", error instanceof Error ? error.message : error);
+    }
   }
 
   return NextResponse.json({ team: updatedTeam });

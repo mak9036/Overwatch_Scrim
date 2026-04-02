@@ -5,9 +5,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import LanguageSwitcher from "@/components/language-switcher";
 import NotificationCenter from "@/components/notification-center";
+import { APP_SESSION_CHANGED_EVENT, notifyAppSessionChanged } from "@/lib/client-events";
 import { useI18n } from "@/lib/i18n";
 
-type HeaderSection = "home" | "blogs";
+type HeaderSection = "home" | "teams" | "ringer" | "match-finder" | "blogs";
 
 interface SiteHeaderProps {
   active?: HeaderSection;
@@ -28,7 +29,18 @@ export default function SiteHeader({ active, accountName, accountAvatarUrl, onLo
   const [resolvedName, setResolvedName] = useState(accountName ?? "");
   const [resolvedAvatar, setResolvedAvatar] = useState(accountAvatarUrl ?? "");
   const activeSection: HeaderSection | undefined =
-    active ?? (pathname === "/" ? "home" : pathname?.startsWith("/blogs") ? "blogs" : undefined);
+    active ??
+    (pathname === "/"
+      ? "home"
+      : pathname?.startsWith("/teams") || pathname?.startsWith("/team")
+        ? "teams"
+        : pathname?.startsWith("/ringer")
+          ? "ringer"
+          : pathname?.startsWith("/match-finder")
+            ? "match-finder"
+            : pathname?.startsWith("/blogs")
+              ? "blogs"
+              : undefined);
 
   useEffect(() => {
     if (accountName !== undefined) {
@@ -73,6 +85,16 @@ export default function SiteHeader({ active, accountName, accountAvatarUrl, onLo
     };
 
     loadSession();
+
+    const handleSessionChanged = () => {
+      void loadSession();
+    };
+
+    window.addEventListener(APP_SESSION_CHANGED_EVENT, handleSessionChanged);
+
+    return () => {
+      window.removeEventListener(APP_SESSION_CHANGED_EVENT, handleSessionChanged);
+    };
   }, [accountName, accountAvatarUrl]);
 
   const handleLogout = async () => {
@@ -83,6 +105,7 @@ export default function SiteHeader({ active, accountName, accountAvatarUrl, onLo
 
     try {
       await fetch("/api/account/logout", { method: "POST" });
+      notifyAppSessionChanged();
     } finally {
       router.replace("/");
       router.refresh();
@@ -105,13 +128,13 @@ export default function SiteHeader({ active, accountName, accountAvatarUrl, onLo
             {t("home.nav.home")}
           </Link>
         )}
-        <Link href="/teams" className={navClass(false)}>
+        <Link href="/teams" className={navClass(activeSection === "teams")}>
           {t("home.nav.teams")}
         </Link>
-        <Link href="/ringer" className={navClass(false)}>
+        <Link href="/ringer" className={navClass(activeSection === "ringer")}>
           {t("home.nav.ringer")}
         </Link>
-        <Link href="/match-finder" className={navClass(false)}>
+        <Link href="/match-finder" className={navClass(activeSection === "match-finder")}>
           {t("home.nav.matchFinder")}
         </Link>
         <Link href="/blogs" className={navClass(activeSection === "blogs")}>

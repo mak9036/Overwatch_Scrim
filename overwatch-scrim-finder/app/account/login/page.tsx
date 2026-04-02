@@ -3,6 +3,7 @@
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { notifyAppSessionChanged } from "@/lib/client-events";
 
 function AccountLoginContent() {
   const [username, setUsername] = useState("");
@@ -49,6 +50,7 @@ function AccountLoginContent() {
         return;
       }
 
+      notifyAppSessionChanged();
       router.push(nextPath);
       router.refresh();
     } catch {

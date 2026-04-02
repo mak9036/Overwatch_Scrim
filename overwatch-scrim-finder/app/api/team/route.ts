@@ -11,6 +11,7 @@ import {
   updateTeamTournaments,
 } from "@/lib/teams-store";
 import { getAccountRecordByUsername } from "@/lib/accounts-store";
+import { notifyUserWithDiscordDm } from "@/lib/discord-dm";
 
 interface CreateTeamPayload {
   name?: unknown;
@@ -122,6 +123,20 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ error: "Could not create team." }, { status: 400 });
   }
+
+  await Promise.all(
+    team.invites.map(async (invite) => {
+      try {
+        await notifyUserWithDiscordDm({
+          username: invite.username,
+          dispatchKey: `${invite.username.toLowerCase()}|invite:${team.id}:${invite.createdAt}:${invite.username.toLowerCase()}`,
+          content: `🎮 Team invite from ${username} to join ${team.name}. Check your team page to respond.`,
+        });
+      } catch (error) {
+        console.error("[team-create] Discord DM failed:", error instanceof Error ? error.message : error);
+      }
+    }),
+  );
 
   const enrichedTeam = await enrichTeamMembersFromProfiles(team);
   return NextResponse.json({ team: enrichedTeam }, { status: 201 });
