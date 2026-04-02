@@ -363,7 +363,6 @@ function AccountProfilePageContent() {
         <div className="flex items-center justify-between gap-3">
           <Link href="/" className="inline-flex items-center gap-3 text-orange-400 hover:text-orange-300">
             <span className="text-2xl">⚔️</span>
-            <span className="font-heading text-2xl font-black">Necoss Slave House</span>
           </Link>
           <div className="flex items-center gap-3">
             <NotificationCenter />
