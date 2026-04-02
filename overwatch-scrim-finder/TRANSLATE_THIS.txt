@@ -1,0 +1,52 @@
+==================================================
+OVERWATCH SCRIM FINDER — Arabic Translation Sheet
+==================================================
+Instructions for translator:
+- Fill in the Arabic translation to the RIGHT of each "="
+- Do NOT change anything to the left of "="
+- Do NOT translate words in ALL CAPS that are game terms
+  (e.g. TANK, DPS, OWCS, EMEA are Overwatch terms, leave them as-is)
+- Send this file back when done
+==================================================
+
+
+--- NAVIGATION (main menu links) ---
+
+HOME =
+TEAMS =
+RINGER =
+MATCH FINDER =
+FIND PLAYERS =
+My Team =
+
+
+--- BUTTONS ---
+
+LOGIN =
+LOG OUT =
+CREATE ACCOUNT =
+Sign in to Post =
+Post Team =
+Post Account =
+Account Info =
+Cancel =
+
+
+--- FOOTER LINKS ---
+
+Terms =
+Privacy =
+Cookies =
+
+
+--- LANGUAGE NAMES (shown in the language dropdown) ---
+
+English =
+Arabic =
+Korean =
+German =
+
+
+==================================================
+Thank you!
+==================================================

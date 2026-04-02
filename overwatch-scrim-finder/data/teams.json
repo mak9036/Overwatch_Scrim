@@ -1,0 +1,165 @@
+[
+  {
+    "id": 1774354674292,
+    "name": "Necoss's Kittens",
+    "avatarUrl": "/uploads/teams/cb9dccca-cd21-4ba4-a86c-124002433e22.jpg",
+    "bio": "The original Necoss squad. A tight-knit group of EMEA players grinding the competitive ladder since day one.",
+    "managerUsername": "Devil9036",
+    "tournaments": [
+      "FIL",
+      "SEL"
+    ],
+    "members": [
+      {
+        "username": "Devil9036",
+        "role": "manager"
+      },
+      {
+        "username": "abc123",
+        "role": "player",
+        "mainRoles": ["Hitscan"]
+      },
+      {
+        "username": "abc1234",
+        "role": "coach"
+      }
+    ],
+    "invites": [],
+    "createdAt": "2026-03-24T12:17:54.292Z"
+  },
+  {
+    "id": 1700000000001,
+    "name": "Neon Dragons",
+    "avatarUrl": "",
+    "bio": "EMEA OWCS hopefuls built around disciplined teamplay and elite mechanical skill. We train 5 days a week and take every scrim seriously.",
+    "managerUsername": "VoltCommander",
+    "tournaments": ["SEL", "FIL"],
+    "members": [
+      {
+        "username": "VoltCommander",
+        "role": "manager"
+      },
+      {
+        "username": "GearCoach",
+        "role": "coach"
+      },
+      {
+        "username": "BlazeShield",
+        "role": "player",
+        "mainRoles": ["Tank"]
+      },
+      {
+        "username": "CrimsonShot",
+        "role": "player",
+        "mainRoles": ["Hitscan"]
+      },
+      {
+        "username": "NeonBlade",
+        "role": "player",
+        "mainRoles": ["Flex DPS"]
+      },
+      {
+        "username": "ArcAngel",
+        "role": "player",
+        "mainRoles": ["Main Support"]
+      },
+      {
+        "username": "VoidGuard",
+        "role": "player",
+        "mainRoles": ["Flex Support"]
+      }
+    ],
+    "invites": [],
+    "createdAt": "2026-02-10T09:00:00.000Z"
+  },
+  {
+    "id": 1700000000002,
+    "name": "Ghost Protocol",
+    "avatarUrl": "",
+    "bio": "NA 4500+ roster focused on structured gameplay and VOD review. No ego, just results. Currently competing in SEL open qualifiers.",
+    "managerUsername": "PhantomLead",
+    "tournaments": ["SEL"],
+    "members": [
+      {
+        "username": "PhantomLead",
+        "role": "manager"
+      },
+      {
+        "username": "GhostStrat",
+        "role": "coach"
+      },
+      {
+        "username": "TitanShield",
+        "role": "player",
+        "mainRoles": ["Tank"]
+      },
+      {
+        "username": "NightHawk",
+        "role": "player",
+        "mainRoles": ["Hitscan"]
+      },
+      {
+        "username": "ShadowStep",
+        "role": "player",
+        "mainRoles": ["Flex DPS"]
+      },
+      {
+        "username": "MistHealer",
+        "role": "player",
+        "mainRoles": ["Main Support"]
+      },
+      {
+        "username": "EtherLight",
+        "role": "player",
+        "mainRoles": ["Flex Support"]
+      }
+    ],
+    "invites": [],
+    "createdAt": "2026-01-20T14:30:00.000Z"
+  },
+  {
+    "id": 1700000000003,
+    "name": "Pacific Storm",
+    "avatarUrl": "",
+    "bio": "APAC's rising force. A dedicated OWCS roster representing the best of Asia-Pacific Overwatch. High-coordination, high-aggression playstyle.",
+    "managerUsername": "StormCaller",
+    "tournaments": ["FIL"],
+    "members": [
+      {
+        "username": "StormCaller",
+        "role": "manager"
+      },
+      {
+        "username": "TempestMind",
+        "role": "coach"
+      },
+      {
+        "username": "RockWall",
+        "role": "player",
+        "mainRoles": ["Tank"]
+      },
+      {
+        "username": "LightSnipe",
+        "role": "player",
+        "mainRoles": ["Hitscan"]
+      },
+      {
+        "username": "ZephyrStrike",
+        "role": "player",
+        "mainRoles": ["Flex DPS"]
+      },
+      {
+        "username": "CoralMend",
+        "role": "player",
+        "mainRoles": ["Main Support"]
+      },
+      {
+        "username": "TideShield",
+        "role": "player",
+        "mainRoles": ["Flex Support"]
+      }
+    ],
+    "invites": [],
+    "createdAt": "2026-01-05T08:00:00.000Z"
+  }
+]

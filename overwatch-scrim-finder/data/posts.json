@@ -1,0 +1,111 @@
+[
+  {
+    "teamName": "Necoss's Kittens",
+    "postType": "team-lfp",
+    "eloRange": "owcs",
+    "region": [
+      "EMEA"
+    ],
+    "leader": "Necoss's Kittens",
+    "ownerUsername": "Devil9036",
+    "avatarUrl": "/uploads/avatars/44ce68c0-d822-4e3a-8b5f-bfe92075f665.jpg",
+    "leaderRole": "Team",
+    "mainRole": [
+      "Hitscan"
+    ],
+    "tournaments": [
+      "FIL",
+      "SEL"
+    ],
+    "members": [
+      {
+        "name": "Devil9036",
+        "rank": "Team Member",
+        "role": "manager",
+        "mainRole": [
+          "Hitscan"
+        ]
+      },
+      {
+        "name": "abc123",
+        "rank": "Team Member",
+        "role": "player",
+        "mainRole": [
+          "Hitscan"
+        ]
+      },
+      {
+        "name": "abc1234",
+        "rank": "Team Member",
+        "role": "coach"
+      }
+    ],
+    "lookingFor": "Hello",
+    "lookingForRoles": [
+      "MS"
+    ],
+    "id": 1774541341860
+  },
+  {
+    "teamName": "Devil9036",
+    "postType": "account",
+    "eloRange": "owcs",
+    "owRank": "grandmaster",
+    "region": [
+      "EMEA"
+    ],
+    "id": 1774541227693,
+    "leader": "Devil9036",
+    "ownerUsername": "Devil9036",
+    "avatarUrl": "/uploads/avatars/44ce68c0-d822-4e3a-8b5f-bfe92075f665.jpg",
+    "leaderRole": "Coach",
+    "mainRole": [],
+    "tournaments": [
+      "FIL",
+      "SEL"
+    ],
+    "members": [
+      {
+        "name": "Devil9036",
+        "rank": "grandmaster",
+        "role": "coach",
+        "mainRole": []
+      }
+    ],
+    "lookingFor": "Looking for a team i can coach for",
+    "lookingForRoles": []
+  },
+  {
+    "teamName": "abc123",
+    "postType": "account",
+    "eloRange": "expert",
+    "owRank": "diamond",
+    "region": [
+      "EMEA"
+    ],
+    "id": 1774540955568,
+    "leader": "abc123",
+    "ownerUsername": "abc123",
+    "avatarUrl": "/uploads/avatars/d5272c72-b8ba-4a21-9296-bfafa54b4858.jpg",
+    "leaderRole": "Player",
+    "mainRole": [
+      "Hitscan"
+    ],
+    "tournaments": [
+      "FIL",
+      "SEL"
+    ],
+    "members": [
+      {
+        "name": "abc123",
+        "rank": "diamond",
+        "role": "player",
+        "mainRole": [
+          "Hitscan"
+        ]
+      }
+    ],
+    "lookingFor": "Im looking for a team",
+    "lookingForRoles": []
+  }
+]
