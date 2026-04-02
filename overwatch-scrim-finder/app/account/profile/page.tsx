@@ -70,15 +70,15 @@ const PLAYER_RANK_OPTIONS = [
 const OVERWATCH_HEROES: { role: string; heroes: string[] }[] = [
   {
     role: "Tank",
-    heroes: ["D.Va", "Doomfist", "Hazard", "Junker Queen", "Mauga", "Orisa", "Ramattra", "Reinhardt", "Roadhog", "Sigma", "Winston", "Wrecking Ball", "Zarya"],
+    heroes: ["D.Va", "Domina", "Doomfist", "Hazard", "Junker Queen", "Mauga", "Orisa", "Ramattra", "Reinhardt", "Roadhog", "Sigma", "Winston", "Wrecking Ball", "Zarya"],
   },
   {
     role: "Damage",
-    heroes: ["Ashe", "Bastion", "Cassidy", "Echo", "Genji", "Hanzo", "Junkrat", "Mei", "Pharah", "Reaper", "Soldier: 76", "Sojourn", "Sombra", "Symmetra", "Torbjörn", "Tracer", "Venture", "Widowmaker"],
+    heroes: ["Anran", "Ashe", "Bastion", "Cassidy", "Echo", "Emre", "Freja", "Genji", "Hanzo", "Junkrat", "Mei", "Pharah", "Reaper", "Soldier: 76", "Sojourn", "Sombra", "Symmetra", "Torbjörn", "Tracer", "Venture", "Widowmaker"],
   },
   {
     role: "Support",
-    heroes: ["Ana", "Baptiste", "Brigitte", "Freja", "Illari", "Juno", "Kiriko", "Lifeweaver", "Lúcio", "Mercy", "Moira", "Zenyatta"],
+    heroes: ["Ana", "Baptiste", "Brigitte", "Illari", "Jetpack Cat", "Juno", "Kiriko", "Lifeweaver", "Lúcio", "Mercy", "Mizuki", "Moira", "Zenyatta"],
   },
 ];
 

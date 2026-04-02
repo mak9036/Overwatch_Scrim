@@ -28,6 +28,31 @@ interface IncomingPostPayload {
 const ALLOWED_REGION_OPTIONS = ["NA", "SA", "EMEA", "JP", "CN", "APAC"] as const;
 const LFP_ROLE_OPTIONS = ["Tank", "FPDS", "HS", "FS", "MS"] as const;
 
+const normalizeServerAssetUrl = (value: unknown): string | undefined => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim().slice(0, 256);
+  if (!trimmed || trimmed.includes("..")) {
+    return undefined;
+  }
+
+  if (trimmed.startsWith("/uploads/avatars/")) {
+    return trimmed.replace("/uploads/avatars/", "/api/uploads/avatars/");
+  }
+
+  if (trimmed.startsWith("/uploads/teams/")) {
+    return trimmed.replace("/uploads/teams/", "/api/uploads/teams/");
+  }
+
+  if (trimmed.startsWith("/api/uploads/")) {
+    return trimmed;
+  }
+
+  return undefined;
+};
+
 const normalizeRegion = (entry: string) => {
   if (entry === "KR" || entry === "AS") {
     return "APAC";
@@ -238,11 +263,7 @@ export async function POST(request: NextRequest) {
     region,
     leader: finalLeader,
     ownerUsername,
-    // Only allow server-controlled upload paths for avatarUrl/bgImage; reject external/javascript: URLs
-    avatarUrl:
-      typeof payload.avatarUrl === "string" && payload.avatarUrl.startsWith("/uploads/") && !payload.avatarUrl.includes("..")
-        ? payload.avatarUrl
-        : undefined,
+    avatarUrl: normalizeServerAssetUrl(payload.avatarUrl),
     leaderRole,
     mainRole,
     tournaments: finalTournaments,
@@ -253,10 +274,7 @@ export async function POST(request: NextRequest) {
       Array.isArray(payload.topPicks) && payload.topPicks.every((entry) => typeof entry === "string")
         ? (payload.topPicks as string[]).slice(0, 3).map((e) => e.trim().slice(0, 32))
         : undefined,
-    bgImage:
-      typeof payload.bgImage === "string" && payload.bgImage.startsWith("/uploads/") && !payload.bgImage.includes("..")
-        ? payload.bgImage
-        : undefined,
+    bgImage: normalizeServerAssetUrl(payload.bgImage),
   });
 
   return NextResponse.json(post, { status: 201 });

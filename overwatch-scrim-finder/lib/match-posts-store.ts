@@ -46,6 +46,27 @@ const sanitizeTournaments = (value: unknown) =>
     ),
   ).slice(0, 3);
 
+const normalizeServerAvatarUrl = (value: unknown): string | undefined => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim().slice(0, 256);
+  if (!trimmed || trimmed.includes("..")) {
+    return undefined;
+  }
+
+  if (trimmed.startsWith("/uploads/teams/")) {
+    return trimmed.replace("/uploads/teams/", "/api/uploads/teams/");
+  }
+
+  if (trimmed.startsWith("/api/uploads/teams/")) {
+    return trimmed;
+  }
+
+  return undefined;
+};
+
 const sanitizeMatchPost = (value: unknown): StoredMatchPost | null => {
   if (!value || typeof value !== "object") {
     return null;
@@ -68,10 +89,7 @@ const sanitizeMatchPost = (value: unknown): StoredMatchPost | null => {
     teamId: candidate.teamId,
     teamName: candidate.teamName.trim().slice(0, 64),
     managerUsername: candidate.managerUsername.trim().slice(0, 64),
-    avatarUrl:
-      typeof candidate.avatarUrl === "string" && candidate.avatarUrl.startsWith("/uploads/") && !candidate.avatarUrl.includes("..")
-        ? candidate.avatarUrl
-        : undefined,
+    avatarUrl: normalizeServerAvatarUrl(candidate.avatarUrl),
     scrimRank: candidate.scrimRank.trim().slice(0, 32),
     region: sanitizeRegions(candidate.region),
     tournaments: sanitizeTournaments(candidate.tournaments),

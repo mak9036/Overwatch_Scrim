@@ -125,6 +125,7 @@ const OW_RANK_OPTIONS = [
   { value: "diamond", label: "Diamond" },
   { value: "master", label: "Master" },
   { value: "grandmaster", label: "Grandmaster" },
+  { value: "champion", label: "Champion" },
 ];
 
 const TOURNAMENT_OPTIONS = [

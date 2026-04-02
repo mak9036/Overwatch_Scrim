@@ -69,6 +69,31 @@ const ensureArrayOfStrings = (value: unknown): string[] => {
   return value.filter((entry) => typeof entry === "string");
 };
 
+const normalizeServerAssetUrl = (value: unknown): string | undefined => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim().slice(0, 256);
+  if (!trimmed || trimmed.includes("..")) {
+    return undefined;
+  }
+
+  if (trimmed.startsWith("/uploads/avatars/")) {
+    return trimmed.replace("/uploads/avatars/", "/api/uploads/avatars/");
+  }
+
+  if (trimmed.startsWith("/uploads/teams/")) {
+    return trimmed.replace("/uploads/teams/", "/api/uploads/teams/");
+  }
+
+  if (trimmed.startsWith("/api/uploads/")) {
+    return trimmed;
+  }
+
+  return undefined;
+};
+
 const sanitizePost = (value: unknown): StoredPost | null => {
   if (!value || typeof value !== "object") {
     return null;
@@ -95,10 +120,7 @@ const sanitizePost = (value: unknown): StoredPost | null => {
       typeof candidate.ownerUsername === "string" && candidate.ownerUsername.trim().length > 0
         ? candidate.ownerUsername.trim()
         : candidate.leader,
-    avatarUrl:
-      typeof candidate.avatarUrl === "string" && candidate.avatarUrl.trim().length > 0
-        ? candidate.avatarUrl.trim().slice(0, 256)
-        : undefined,
+    avatarUrl: normalizeServerAssetUrl(candidate.avatarUrl),
     leaderRole: typeof candidate.leaderRole === "string" ? candidate.leaderRole : "Player",
     mainRole: ensureArrayOfStrings(candidate.mainRole),
     tournaments: sanitizeTournaments(candidate.tournaments),
@@ -130,7 +152,7 @@ const sanitizePost = (value: unknown): StoredPost | null => {
     topPicks: Array.isArray(candidate.topPicks)
       ? candidate.topPicks.filter((entry) => typeof entry === "string").slice(0, 3)
       : undefined,
-    bgImage: typeof candidate.bgImage === "string" ? candidate.bgImage : undefined,
+    bgImage: normalizeServerAssetUrl(candidate.bgImage),
   };
 };
 

@@ -22,7 +22,7 @@ const barlow = Barlow({
 });
 
 export const metadata: Metadata = {
-  title: "Overwatch Scrim Finder",
+  title: "LFFinder",
   description: "Find teams, players, and scrim opportunities.",
 };
 
