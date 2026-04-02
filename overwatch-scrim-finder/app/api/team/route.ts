@@ -27,7 +27,10 @@ interface UpdateTeamPayload {
   removeMemberUsername?: unknown;
 }
 
-const enrichTeamMembersFromProfiles = async <TTeam extends { members: Array<{ username: string; role: string; mainRoles?: string[] }> }>(team: TTeam | null) => {
+const enrichTeamMembersFromProfiles = async <TTeam extends {
+  managerUsername: string;
+  members: Array<{ username: string; role: string; mainRoles?: string[] }>;
+}>(team: TTeam | null) => {
   if (!team) {
     return null;
   }
