@@ -38,14 +38,22 @@ This repo now includes a built-in Discord linking flow and a worker process that
 
 ### 1) Required environment variables
 
+Copy `.env.example` to `.env.local`, then fill in real values.
+
 Add these to `.env.local` (or your deployment environment):
 
 ```bash
+NODE_ENV=development
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 SESSION_SECRET=replace_with_a_long_random_secret
+ADMIN_PANEL_PASSWORD=your_secure_password_here
 DISCORD_CLIENT_ID=your_discord_app_client_id
 DISCORD_CLIENT_SECRET=your_discord_app_client_secret
 DISCORD_REDIRECT_URI=http://localhost:3000/api/account/discord/callback
 DISCORD_BOT_TOKEN=your_discord_bot_token
+DISCORD_APPLICATION_ID=your_discord_application_id
+DISCORD_GUILD_ID=your_discord_guild_id
+DISCORD_POST_BOT_SECRET=replace_with_a_shared_secret_for_team_post_endpoint
 DISCORD_NOTIFICATION_POLL_MS=15000
 ```
 
