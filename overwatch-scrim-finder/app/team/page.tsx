@@ -21,6 +21,8 @@ interface Team {
   name: string;
   avatarUrl?: string;
   managerUsername: string;
+  managerBattleTag?: string;
+  managerDiscordTag?: string;
   tournaments: string[];
   members: TeamMember[];
   invites: TeamInvite[];
@@ -43,8 +45,6 @@ export default function TeamPage() {
   const [loading, setLoading] = useState(true);
   const [accountName, setAccountName] = useState("");
   const [leaderRole, setLeaderRole] = useState("");
-  const [battleTag, setBattleTag] = useState("");
-  const [discordTag, setDiscordTag] = useState("");
   const [rank, setRank] = useState("");
   const [team, setTeam] = useState<Team | null>(null);
   const [teamName, setTeamName] = useState("");
@@ -78,10 +78,6 @@ export default function TeamPage() {
     const sessionData = (await sessionResponse.json()) as {
       account?: {
         username?: string;
-        accountProfile?: {
-          battleTag?: string;
-          discordTag?: string;
-        };
         gameProfile?: {
           leaderRole?: string;
           rank?: string;
@@ -92,8 +88,6 @@ export default function TeamPage() {
 
     setAccountName(typeof sessionData.account?.username === "string" ? sessionData.account.username : "");
     setLeaderRole(typeof sessionData.account?.gameProfile?.leaderRole === "string" ? sessionData.account.gameProfile.leaderRole : "");
-    setBattleTag(typeof sessionData.account?.accountProfile?.battleTag === "string" ? sessionData.account.accountProfile.battleTag : "");
-    setDiscordTag(typeof sessionData.account?.accountProfile?.discordTag === "string" ? sessionData.account.accountProfile.discordTag : "");
     setRank(typeof sessionData.account?.gameProfile?.rank === "string" ? sessionData.account.gameProfile.rank : "");
 
     if (teamResponse.ok) {
@@ -380,6 +374,8 @@ export default function TeamPage() {
   const isManager = leaderRole === "Manager";
   const isTeamManager = team && team.managerUsername.toLowerCase() === accountName.toLowerCase();
   const hasPendingInvite = team && team.invites.some((invite) => invite.username.toLowerCase() === accountName.toLowerCase());
+  const displayedBattleTag = team?.managerBattleTag || "";
+  const displayedDiscordTag = team?.managerDiscordTag || "";
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.18),transparent_28%),linear-gradient(180deg,#060606_0%,#111114_45%,#09090b_100%)] text-white">
@@ -410,8 +406,8 @@ export default function TeamPage() {
                 <p className="mt-5 font-heading text-3xl font-black">{team?.name || "No Team Yet"}</p>
               <p className="mt-1 text-sm font-semibold uppercase tracking-[0.2em] text-orange-300">{team ? "Team Profile" : "Team Not Created"}</p>
               <p className="mt-3 text-sm text-zinc-300">Manager: <span className="font-semibold text-white">{team?.managerUsername || accountName}</span></p>
-              {battleTag ? <p className="mt-4 text-sm font-semibold text-zinc-200">{battleTag}</p> : null}
-              {discordTag ? <p className="mt-1 text-xs text-zinc-400">Discord: {discordTag}</p> : null}
+              {displayedBattleTag ? <p className="mt-4 text-sm font-semibold text-zinc-200">{displayedBattleTag}</p> : null}
+              {displayedDiscordTag ? <p className="mt-1 text-xs text-zinc-400">Discord: {displayedDiscordTag}</p> : null}
               {isTeamManager && team ? (
                 <label className="mt-5 inline-block cursor-pointer rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-800">
                   {uploadingTeamAvatar ? "Uploading..." : "Upload Team Picture"}

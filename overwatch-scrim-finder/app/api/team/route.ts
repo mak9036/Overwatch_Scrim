@@ -32,6 +32,8 @@ const enrichTeamMembersFromProfiles = async <TTeam extends { members: Array<{ us
     return null;
   }
 
+  const managerAccount = await getAccountRecordByUsername(team.managerUsername);
+
   const members = await Promise.all(
     team.members.map(async (member) => {
       const account = await getAccountRecordByUsername(member.username);
@@ -48,6 +50,16 @@ const enrichTeamMembersFromProfiles = async <TTeam extends { members: Array<{ us
 
   return {
     ...team,
+    managerBattleTag:
+      typeof managerAccount?.accountProfile?.battleTag === "string"
+        ? managerAccount.accountProfile.battleTag
+        : "",
+    managerDiscordTag:
+      typeof managerAccount?.accountProfile?.discordTag === "string"
+        ? managerAccount.accountProfile.discordTag
+        : typeof managerAccount?.accountProfile?.discordUsername === "string"
+          ? managerAccount.accountProfile.discordUsername
+          : "",
     members,
   };
 };

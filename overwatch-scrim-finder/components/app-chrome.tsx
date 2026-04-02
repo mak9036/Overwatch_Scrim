@@ -8,7 +8,7 @@ import SiteSidebar from "@/components/site-sidebar";
 import { useI18n } from "@/lib/i18n";
 
 const DISCORD_INVITE_URL = "https://discord.gg/";
-const TWITTER_URL = "https://x.com/";
+const TWITTER_URL = "https://x.com/LFFfinder";
 
 export default function AppChrome({ children }: { children: ReactNode }) {
   const { t } = useI18n();
