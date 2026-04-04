@@ -8,7 +8,7 @@ export default function SiteSidebar() {
 
   return (
     <aside className="w-full border-b border-zinc-800 bg-zinc-950/50 p-4 sm:p-6 lg:w-48 lg:border-b-0 lg:border-r lg:space-y-6">
-      <div className="relative h-24 w-full">
+      <div className="relative mx-auto aspect-square w-full max-w-[clamp(5.5rem,22vw,8.5rem)] lg:max-w-[clamp(6.5rem,10vw,9rem)]">
         <img
           src="/Overwatch_circle_logo.svg.png"
           alt="Overwatch logo"

@@ -126,6 +126,9 @@
   }
   html {
     @apply font-sans;
+    font-size: clamp(14px, 0.3vw + 13px, 18px);
+    -webkit-text-size-adjust: 100%;
+    scrollbar-gutter: stable;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-barlow-condensed);
@@ -144,4 +147,13 @@
 
 body {
   top: 0 !important;
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
 }

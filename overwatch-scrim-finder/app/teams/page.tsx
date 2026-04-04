@@ -113,66 +113,61 @@ function TeamCard({ team }: { team: TeamEnriched }) {
   const playerCount = team.members.filter((m) => m.role === "player" || m.role === "shotcaller").length;
   const regionLabel = team.region.length > 0 ? team.region.join(" • ") : "—";
   const scrimRankLabel = team.scrimRank && team.scrimRank.trim().length > 0 ? team.scrimRank : "—";
+  const teamHref = `/teams/${team.id}`;
+  const rosterPreview = ordered.slice(0, 8);
 
   return (
-    <div className="group relative h-[360px] rounded-2xl border border-zinc-800 bg-[linear-gradient(160deg,rgba(30,24,26,0.98),rgba(18,15,18,1))] overflow-hidden cursor-default transition-all duration-200 hover:border-orange-500/50 hover:shadow-[0_0_24px_rgba(249,115,22,0.08)]">
-
-      {/* ── NORMAL FACE ── */}
-      <div className="absolute inset-0 flex flex-col p-5 transition-opacity duration-200 group-hover:opacity-0 group-hover:pointer-events-none">
-
-        {/* Team avatar + name */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="h-16 w-16 rounded-xl overflow-hidden shrink-0 border border-zinc-700 bg-zinc-800 flex items-center justify-center">
-            {team.avatarUrl && !teamImgError ? (
-              <img
-                src={team.avatarUrl}
-                alt={team.name}
-                onError={() => setTeamImgError(true)}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <span className="text-2xl font-black text-orange-400 select-none">
-                {team.name.charAt(0).toUpperCase()}
-              </span>
-            )}
-          </div>
-          <div className="min-w-0">
-            <h3 className="text-lg font-black text-white truncate leading-tight">{team.name}</h3>
-            <p className="text-sm text-zinc-500 mt-0.5 truncate">
-              Manager: <span className="text-zinc-300">{team.managerUsername}</span>
-            </p>
-          </div>
+    <div className="rounded-2xl border border-zinc-800 bg-[linear-gradient(160deg,rgba(30,24,26,0.98),rgba(18,15,18,1))] p-4 transition-all duration-200 hover:border-orange-500/50 hover:shadow-[0_0_24px_rgba(249,115,22,0.08)]">
+      <div className="flex items-center gap-3">
+        <div className="h-14 w-14 rounded-xl overflow-hidden shrink-0 border border-zinc-700 bg-zinc-800 flex items-center justify-center">
+          {team.avatarUrl && !teamImgError ? (
+            <img
+              src={team.avatarUrl}
+              alt={team.name}
+              onError={() => setTeamImgError(true)}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="text-xl font-black text-orange-400 select-none">
+              {team.name.charAt(0).toUpperCase()}
+            </span>
+          )}
         </div>
-
-        {/* Stats row */}
-        <div className="grid grid-cols-4 gap-2 mb-3">
-          <div className="rounded-lg bg-zinc-900/80 border border-zinc-800 py-2 text-center">
-            <p className="text-xs uppercase tracking-wider text-zinc-500 mb-0.5">Region</p>
-            <p className="text-sm font-bold text-zinc-100 truncate px-1">{regionLabel}</p>
-          </div>
-          <div className="rounded-lg bg-zinc-900/80 border border-zinc-800 py-2 text-center">
-            <p className="text-xs uppercase tracking-wider text-zinc-500 mb-0.5">Scrim Rank</p>
-            <p className="text-sm font-bold text-orange-300 truncate px-1">{scrimRankLabel}</p>
-          </div>
-          <div className="rounded-lg bg-zinc-900/80 border border-zinc-800 py-2 text-center">
-            <p className="text-xs uppercase tracking-wider text-zinc-500 mb-0.5">Players</p>
-            <p className="text-sm font-bold text-zinc-100">{playerCount}</p>
-          </div>
-          <div className="rounded-lg bg-zinc-900/80 border border-zinc-800 py-2 text-center">
-            <p className="text-xs uppercase tracking-wider text-zinc-500 mb-0.5">Total</p>
-            <p className="text-sm font-bold text-zinc-100">{team.members.length}</p>
-          </div>
+        <div className="min-w-0">
+          <h3 className="text-lg font-black text-white truncate leading-tight">{team.name}</h3>
+          <p className="text-sm text-zinc-500 mt-0.5 truncate">
+            Manager: <span className="text-zinc-300">{team.managerUsername}</span>
+          </p>
         </div>
+      </div>
 
-        {/* Tournaments */}
-        <div className="mt-1 rounded-lg border border-zinc-800/80 bg-zinc-950/40 p-2">
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-orange-300">Interested Tournaments</p>
-          <div className="flex flex-wrap gap-1.5">
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="rounded-lg bg-zinc-900/80 border border-zinc-800 py-2 text-center">
+          <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">Region</p>
+          <p className="text-sm font-bold text-zinc-100 truncate px-1">{regionLabel}</p>
+        </div>
+        <div className="rounded-lg bg-zinc-900/80 border border-zinc-800 py-2 text-center">
+          <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">Scrim Rank</p>
+          <p className="text-sm font-bold text-orange-300 truncate px-1">{scrimRankLabel}</p>
+        </div>
+        <div className="rounded-lg bg-zinc-900/80 border border-zinc-800 py-2 text-center">
+          <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">Players</p>
+          <p className="text-sm font-bold text-zinc-100">{playerCount}</p>
+        </div>
+        <div className="rounded-lg bg-zinc-900/80 border border-zinc-800 py-2 text-center">
+          <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">Total</p>
+          <p className="text-sm font-bold text-zinc-100">{team.members.length}</p>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-lg border border-zinc-800/80 bg-zinc-950/40 p-2">
+        <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-orange-300">Interested Tournaments</p>
+        <div className="flex flex-wrap gap-1.5">
           {team.tournaments.length > 0 ? (
             team.tournaments.map((t) => (
               <span
                 key={t}
-                className="rounded-md border border-orange-500/30 bg-orange-500/10 px-2 py-0.5 text-sm font-bold uppercase tracking-widest text-orange-300"
+                className="rounded-md border border-orange-500/30 bg-orange-500/10 px-2 py-0.5 text-xs font-bold uppercase tracking-widest text-orange-300"
               >
                 {t}
               </span>
@@ -180,52 +175,40 @@ function TeamCard({ team }: { team: TeamEnriched }) {
           ) : (
             <span className="text-sm text-zinc-600">No tournaments</span>
           )}
-          </div>
-        </div>
-
-        {/* Bio */}
-        <div className="mt-auto pt-3 border-t border-zinc-800/70">
-          <p className="text-sm text-zinc-300 leading-relaxed line-clamp-3">
-            {team.bio || "No team description yet."}
-          </p>
         </div>
       </div>
 
-      {/* ── HOVER ROSTER FACE ── */}
-      <div className="absolute inset-0 flex flex-col p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-[linear-gradient(160deg,rgba(22,18,20,0.99),rgba(14,11,14,0.99))]">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3 border-b border-zinc-800 pb-2.5">
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-md overflow-hidden border border-zinc-700 bg-zinc-800 flex items-center justify-center shrink-0">
-              {team.avatarUrl && !teamImgError ? (
-                <img src={team.avatarUrl} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <span className="text-xs font-black text-orange-400">{team.name.charAt(0)}</span>
-              )}
-            </div>
-            <p className="text-sm font-black text-white truncate">{team.name}</p>
-          </div>
-          <span className="text-xs font-semibold uppercase tracking-widest text-orange-400">Roster</span>
-        </div>
-
-        {/* Member grid — 4 columns */}
-        <div className="grid grid-cols-4 gap-x-2 gap-y-3">
-          {ordered.map((member) => {
+      <div className="mt-3 rounded-lg border border-zinc-800/80 bg-zinc-950/40 p-2.5">
+        <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-zinc-400">Roster Preview</p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {rosterPreview.map((member) => {
             const label = getRoleLabel(member);
             const badgeStyle = ROLE_BADGE_STYLES[label] ?? ROLE_BADGE_STYLES.Player;
+
             return (
-              <div key={member.username} className="flex flex-col items-center gap-1 text-center min-w-0">
-                <MemberAvatar member={member} size="sm" />
-                <p className="text-sm font-semibold text-zinc-200 w-full truncate leading-none">
-                  {member.username}
-                </p>
-                <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md leading-none whitespace-nowrap ${badgeStyle}`}>
+              <div key={member.username} className="min-w-0 rounded-md border border-zinc-800/80 bg-zinc-900/70 px-2 py-1.5">
+                <div className="flex items-center gap-1.5">
+                  <MemberAvatar member={member} size="sm" />
+                  <p className="truncate text-xs font-semibold text-zinc-100">{member.username}</p>
+                </div>
+                <span className={`mt-1 inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-bold leading-none ${badgeStyle}`}>
                   {label}
                 </span>
               </div>
             );
           })}
         </div>
+      </div>
+
+      {team.bio ? <p className="mt-3 text-sm text-zinc-300 leading-relaxed line-clamp-3">{team.bio}</p> : null}
+
+      <div className="mt-4">
+        <Link
+          href={teamHref}
+          className="inline-flex w-full items-center justify-center rounded-xl border border-orange-500/40 bg-orange-500/12 px-4 py-2.5 text-sm font-black uppercase tracking-[0.14em] text-orange-200 transition hover:border-orange-400 hover:bg-orange-500/20 hover:text-white"
+        >
+          View Team
+        </Link>
       </div>
     </div>
   );
@@ -241,6 +224,7 @@ export default function TeamsPage() {
   const [sortBy, setSortBy] = useState("newest");
   const [accountName, setAccountName] = useState("");
   const [accountAvatarUrl, setAccountAvatarUrl] = useState("");
+  const [gridColumns, setGridColumns] = useState<1 | 2 | 4>(1);
 
   useEffect(() => {
     const loadTeams = async () => {
@@ -291,17 +275,15 @@ export default function TeamsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-black text-white">
-      {/* BODY */}
       <div>
-        {/* MAIN */}
-        <div className="p-6 space-y-6">
+        <div className="space-y-6 p-4 sm:p-6">
 
           {/* Banner */}
-          <div className="flex items-center justify-between rounded-2xl border border-orange-500/20 bg-zinc-900/60 px-6 py-5">
+          <div className="flex flex-col items-start gap-3 rounded-2xl border border-orange-500/20 bg-zinc-900/60 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
             <div>
               <h2 className="text-xl font-bold">All Teams</h2>
               <p className="mt-1 text-sm text-zinc-400">
-                Browse registered teams — hover a card to see the roster.
+                Browse registered teams and quickly preview the roster.
               </p>
             </div>
             <span className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-bold text-zinc-300">
@@ -309,17 +291,58 @@ export default function TeamsPage() {
             </span>
           </div>
 
+          {/* Layout Selector */}
+          <div className="ml-auto flex w-fit items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
+            <button
+              type="button"
+              onClick={() => setGridColumns(1)}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide transition ${gridColumns === 1 ? "bg-orange-500 text-black" : "text-zinc-300 hover:text-white"}`}
+              title="1 column"
+            >
+              <span className="sr-only">1 column</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current">
+                <rect x="4" y="4" width="12" height="12" rx="2" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => setGridColumns(2)}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide transition ${gridColumns === 2 ? "bg-orange-500 text-black" : "text-zinc-300 hover:text-white"}`}
+              title="2 columns"
+            >
+              <span className="sr-only">2 columns</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current">
+                <rect x="2" y="4" width="7" height="12" rx="1.5" />
+                <rect x="11" y="4" width="7" height="12" rx="1.5" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => setGridColumns(4)}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide transition ${gridColumns === 4 ? "bg-orange-500 text-black" : "text-zinc-300 hover:text-white"}`}
+              title="4 columns"
+            >
+              <span className="sr-only">4 columns</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current">
+                <rect x="2" y="2" width="7" height="7" rx="1.5" />
+                <rect x="11" y="2" width="7" height="7" rx="1.5" />
+                <rect x="2" y="11" width="7" height="7" rx="1.5" />
+                <rect x="11" y="11" width="7" height="7" rx="1.5" />
+              </svg>
+            </button>
+          </div>
+
           {/* Cards grid */}
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className={`${gridColumns === 1 ? "space-y-4" : gridColumns === 2 ? "grid grid-cols-1 gap-4 md:grid-cols-2" : "grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"}`}>
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-[360px] rounded-2xl border border-zinc-800 bg-zinc-900/40 animate-pulse" />
+                <div key={i} className="min-h-[360px] rounded-2xl border border-zinc-800 bg-zinc-900/40 animate-pulse" />
               ))}
             </div>
           ) : filtered.length === 0 ? (
             <p className="text-zinc-500 text-sm">No teams found.</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className={`${gridColumns === 1 ? "space-y-4" : gridColumns === 2 ? "grid grid-cols-1 gap-4 md:grid-cols-2" : "grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"}`}>
               {filtered.map((team) => (
                 <TeamCard key={team.id} team={team} />
               ))}

@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
+import moment from "moment-timezone";
 
 export interface StoredRingerPost {
   id: number;
@@ -11,7 +12,7 @@ export interface StoredRingerPost {
   availableFrom?: string;
   availableUntil?: string;
   preferredTimeZone?: string;
-  durationHours: 12 | 24;
+  durationHours?: 12 | 24;
   createdAt: number;
   expiresAt: number;
 }
@@ -33,6 +34,49 @@ const sanitizeDuration = (value: unknown): 12 | 24 => {
   return 24;
 };
 
+const isQuarterHourTime = (value: string) => /^([01]\d|2[0-3]):(00|15|30|45)$/.test(value);
+
+const computeExpiryFromAvailability = (
+  availableFrom: string | undefined,
+  availableUntil: string | undefined,
+  preferredTimeZone: string | undefined,
+  createdAt: number,
+) => {
+  if (!availableFrom || !availableUntil || !preferredTimeZone || !moment.tz.zone(preferredTimeZone)) {
+    return null;
+  }
+
+  const now = moment.tz(createdAt, preferredTimeZone);
+  const candidateBaseDates = [
+    now.clone().subtract(1, "day"),
+    now.clone(),
+    now.clone().add(1, "day"),
+  ];
+
+  const candidateEnds = candidateBaseDates
+    .map((baseDate) => {
+      const [fromHour, fromMinute] = availableFrom.split(":").map(Number);
+      const [untilHour, untilMinute] = availableUntil.split(":").map(Number);
+
+      const start = baseDate.clone().hour(fromHour).minute(fromMinute).second(0).millisecond(0);
+      const end = baseDate.clone().hour(untilHour).minute(untilMinute).second(0).millisecond(0);
+      if (!start.isValid() || !end.isValid()) {
+        return null;
+      }
+
+      if (!end.isAfter(start)) {
+        end.add(1, "day");
+      }
+
+      return end;
+    })
+    .filter((entry): entry is moment.Moment => entry !== null)
+    .filter((entry) => entry.valueOf() > createdAt)
+    .sort((left, right) => left.valueOf() - right.valueOf());
+
+  return candidateEnds[0]?.valueOf() ?? null;
+};
+
 const sanitizeRingerPost = (value: unknown): StoredRingerPost | null => {
   if (!value || typeof value !== "object") {
     return null;
@@ -47,12 +91,25 @@ const sanitizeRingerPost = (value: unknown): StoredRingerPost | null => {
     return null;
   }
 
-  const durationHours = sanitizeDuration(candidate.durationHours);
   const createdAt = typeof candidate.createdAt === "number" ? candidate.createdAt : Date.now();
+  const availableFrom =
+    typeof candidate.availableFrom === "string" && isQuarterHourTime(candidate.availableFrom.trim())
+      ? candidate.availableFrom.trim()
+      : undefined;
+  const availableUntil =
+    typeof candidate.availableUntil === "string" && isQuarterHourTime(candidate.availableUntil.trim())
+      ? candidate.availableUntil.trim()
+      : undefined;
+  const preferredTimeZone =
+    typeof candidate.preferredTimeZone === "string" && candidate.preferredTimeZone.trim().length > 0
+      ? candidate.preferredTimeZone.trim().slice(0, 64)
+      : undefined;
+  const durationHours = sanitizeDuration(candidate.durationHours);
+  const computedExpiry = computeExpiryFromAvailability(availableFrom, availableUntil, preferredTimeZone, createdAt);
   const expiresAt =
     typeof candidate.expiresAt === "number"
       ? candidate.expiresAt
-      : createdAt + durationHours * 60 * 60 * 1000;
+      : computedExpiry ?? createdAt + durationHours * 60 * 60 * 1000;
 
   return {
     id: typeof candidate.id === "number" ? candidate.id : Date.now(),
@@ -64,18 +121,9 @@ const sanitizeRingerPost = (value: unknown): StoredRingerPost | null => {
       typeof candidate.preferredTime === "string" && candidate.preferredTime.trim().length > 0
         ? candidate.preferredTime.trim().slice(0, 120)
         : undefined,
-    availableFrom:
-      typeof candidate.availableFrom === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(candidate.availableFrom.trim())
-        ? candidate.availableFrom.trim()
-        : undefined,
-    availableUntil:
-      typeof candidate.availableUntil === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(candidate.availableUntil.trim())
-        ? candidate.availableUntil.trim()
-        : undefined,
-    preferredTimeZone:
-      typeof candidate.preferredTimeZone === "string" && candidate.preferredTimeZone.trim().length > 0
-        ? candidate.preferredTimeZone.trim().slice(0, 64)
-        : undefined,
+    availableFrom,
+    availableUntil,
+    preferredTimeZone,
     durationHours,
     createdAt,
     expiresAt,
@@ -130,7 +178,9 @@ export const createRingerPost = async (
 ): Promise<StoredRingerPost> => {
   const currentRingers = await readRingers();
   const createdAt = Date.now();
-  const expiresAt = createdAt + payload.durationHours * 60 * 60 * 1000;
+  const expiresAt =
+    computeExpiryFromAvailability(payload.availableFrom, payload.availableUntil, payload.preferredTimeZone, createdAt) ??
+    createdAt + 24 * 60 * 60 * 1000;
 
   const nextRinger: StoredRingerPost = {
     ...payload,

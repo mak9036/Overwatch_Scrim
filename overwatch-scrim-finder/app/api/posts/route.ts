@@ -16,6 +16,7 @@ interface IncomingPostPayload {
   leader?: unknown;
   avatarUrl?: unknown;
   leaderRole?: unknown;
+  leaderRoles?: unknown;
   mainRole?: unknown;
   tournaments?: unknown;
   members?: unknown;
@@ -27,6 +28,7 @@ interface IncomingPostPayload {
 
 const ALLOWED_REGION_OPTIONS = ["NA", "SA", "EMEA", "JP", "CN", "APAC"] as const;
 const LFP_ROLE_OPTIONS = ["Tank", "FPDS", "HS", "FS", "MS"] as const;
+const LEADER_STATUS_OPTIONS = ["Player", "Manager", "Coach", "Team"] as const;
 
 const normalizeServerAssetUrl = (value: unknown): string | undefined => {
   if (typeof value !== "string") {
@@ -93,6 +95,21 @@ const sanitizeLfpRoles = (value: unknown) => {
   ).slice(0, 5);
 };
 
+const sanitizeLeaderStatuses = (value: unknown) => {
+  if (!Array.isArray(value)) {
+    return [] as string[];
+  }
+
+  return Array.from(
+    new Set(
+      value
+        .filter((entry): entry is string => typeof entry === "string")
+        .map((entry) => entry.trim())
+        .filter((entry) => LEADER_STATUS_OPTIONS.includes(entry as (typeof LEADER_STATUS_OPTIONS)[number])),
+    ),
+  ).slice(0, 4);
+};
+
 export async function GET() {
   const posts = await readPosts();
   const teams = await getAllTeams();
@@ -149,7 +166,13 @@ export async function POST(request: NextRequest) {
   const postType = payload.postType === "team-lfp" ? "team-lfp" : "account";
   const isTeamPost = postType === "team-lfp";
 
-  if (postType === "team-lfp" && account?.gameProfile?.leaderRole !== "Manager") {
+  const accountLeaderRoles = Array.isArray(account?.gameProfile?.leaderRoles)
+    ? account.gameProfile.leaderRoles
+    : [];
+  const managerDetected =
+    account?.gameProfile?.leaderRole === "Manager" || accountLeaderRoles.includes("Manager");
+
+  if (postType === "team-lfp" && !managerDetected) {
     return NextResponse.json({ error: "Only managers can create Team LFP posts." }, { status: 403 });
   }
 
@@ -162,6 +185,8 @@ export async function POST(request: NextRequest) {
       : postType === "team-lfp"
         ? "Team"
         : "Player";
+  const incomingLeaderRoles = sanitizeLeaderStatuses(payload.leaderRoles);
+  const leaderRoles = incomingLeaderRoles.length > 0 ? incomingLeaderRoles : [leaderRole];
   const region = sanitizeRegions(payload.region);
   const mainRole =
     Array.isArray(payload.mainRole) && payload.mainRole.every((entry) => typeof entry === "string")
@@ -265,6 +290,7 @@ export async function POST(request: NextRequest) {
     ownerUsername,
     avatarUrl: normalizeServerAssetUrl(payload.avatarUrl),
     leaderRole,
+    leaderRoles,
     mainRole,
     tournaments: finalTournaments,
     members: finalMembers,

@@ -379,14 +379,14 @@ export default function TeamPage() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.18),transparent_28%),linear-gradient(180deg,#060606_0%,#111114_45%,#09090b_100%)] text-white">
-      <div className="mx-auto min-h-screen max-w-7xl px-6 py-8">
-        <div className="mb-8 flex items-center justify-between gap-4 border-b border-zinc-800/80 pb-6">
+      <div className="mx-auto min-h-screen max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+        <div className="mb-8 flex flex-col gap-4 border-b border-zinc-800/80 pb-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-300">Team Control</p>
-            <h1 className="mt-2 text-5xl font-black tracking-wide">My Team</h1>
+            <h1 className="mt-2 text-3xl font-black tracking-wide sm:text-4xl lg:text-5xl">My Team</h1>
             <p className="mt-2 text-sm text-zinc-400">Create your roster, invite players, and manage membership from one place.</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 self-start lg:self-auto">
             <NotificationCenter />
             <Link href="/" className="rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:bg-zinc-800 hover:text-white">← Back to Feed</Link>
           </div>
@@ -395,7 +395,7 @@ export default function TeamPage() {
         {error ? <p className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</p> : null}
         {info ? <p className="mb-4 rounded-xl border border-green-500/40 bg-green-500/10 px-4 py-3 text-sm text-green-300">{info}</p> : null}
 
-        <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]">
           <aside className="space-y-6 rounded-[2rem] border border-zinc-800 bg-zinc-950/70 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset]">
             <div className="rounded-[1.75rem] border border-zinc-800 bg-[linear-gradient(180deg,rgba(249,115,22,0.12),rgba(20,20,24,0.95))] p-6 text-center">
               {team?.avatarUrl ? (
@@ -518,7 +518,7 @@ export default function TeamPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+                <div className="grid gap-6 xl:grid-cols-2">
                   <div className="space-y-6">
                     <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
                       <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-zinc-500">Roster</p>

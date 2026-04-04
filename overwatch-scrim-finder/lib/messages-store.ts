@@ -74,6 +74,23 @@ const writeMessages = async (messages: StoredMessage[]) => {
 
 const usernameEquals = (left: string, right: string) => left.toLowerCase() === right.toLowerCase();
 
+export const getLatestSentMessage = async (senderUsername: string, recipientUsername: string) => {
+  const safeSenderUsername = normalizeUsername(senderUsername);
+  const safeRecipientUsername = normalizeUsername(recipientUsername);
+  if (!safeSenderUsername || !safeRecipientUsername) {
+    return null;
+  }
+
+  const messages = await readMessages();
+  return (
+    messages.find(
+      (message) =>
+        usernameEquals(message.senderUsername, safeSenderUsername) &&
+        usernameEquals(message.recipientUsername, safeRecipientUsername),
+    ) || null
+  );
+};
+
 export const getMessagesForUser = async (username: string) => {
   const safeUsername = normalizeUsername(username);
   if (!safeUsername) {
@@ -137,4 +154,28 @@ export const markMessageRead = async (messageId: number, recipientUsername: stri
   await writeMessages(nextMessages);
 
   return nextMessage;
+};
+
+export const deleteMessageForUser = async (messageId: number, username: string) => {
+  const safeUsername = normalizeUsername(username);
+  if (!safeUsername || !Number.isFinite(messageId)) {
+    return false;
+  }
+
+  const messages = await readMessages();
+  const index = messages.findIndex(
+    (message) =>
+      message.id === messageId &&
+      (usernameEquals(message.senderUsername, safeUsername) || usernameEquals(message.recipientUsername, safeUsername)),
+  );
+
+  if (index === -1) {
+    return false;
+  }
+
+  const nextMessages = [...messages];
+  nextMessages.splice(index, 1);
+  await writeMessages(nextMessages);
+
+  return true;
 };

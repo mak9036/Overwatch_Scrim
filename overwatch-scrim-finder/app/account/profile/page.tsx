@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { FormEvent, Suspense, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import NotificationCenter from "@/components/notification-center";
@@ -82,6 +82,14 @@ const OVERWATCH_HEROES: { role: string; heroes: string[] }[] = [
   },
 ];
 
+const MAIN_ROLE_TO_HERO_GROUP: Record<string, string> = {
+  Tank: "Tank",
+  Hitscan: "Damage",
+  "Flex DPS": "Damage",
+  "Flex Support": "Support",
+  "Main Support": "Support",
+};
+
 const PRO_MATCH_ALLOWED_HOSTS = ["liquipedia.net"] as const;
 
 const isAllowedProMatchUrl = (raw: string) => {
@@ -110,6 +118,70 @@ const extractEntryLink = (entry: string) => {
   return { label, href };
 };
 
+const AVATAR_EDITOR_FRAME_SIZE = 340;
+const AVATAR_EDITOR_CROP_RATIO = 0.8;
+const AVATAR_EDITOR_CROP_SIZE = AVATAR_EDITOR_FRAME_SIZE * AVATAR_EDITOR_CROP_RATIO;
+const AVATAR_EDITOR_CROP_OFFSET = (AVATAR_EDITOR_FRAME_SIZE - AVATAR_EDITOR_CROP_SIZE) / 2;
+const AVATAR_EDITOR_OUTPUT_SIZE = 512;
+const AVATAR_EDITOR_MAX_ZOOM_CAP = 12;
+
+const getAvatarDrawGeometry = (
+  imageWidth: number,
+  imageHeight: number,
+  zoom: number,
+  offsetX: number,
+  offsetY: number,
+) => {
+  const baseScale = Math.max(
+    AVATAR_EDITOR_CROP_SIZE / imageWidth,
+    AVATAR_EDITOR_CROP_SIZE / imageHeight,
+  );
+  const effectiveScale = baseScale * zoom;
+  const drawWidth = imageWidth * effectiveScale;
+  const drawHeight = imageHeight * effectiveScale;
+  const maxOffsetX = Math.max(0, (drawWidth - AVATAR_EDITOR_CROP_SIZE) / 2);
+  const maxOffsetY = Math.max(0, (drawHeight - AVATAR_EDITOR_CROP_SIZE) / 2);
+  const clampedOffsetX = Math.min(maxOffsetX, Math.max(-maxOffsetX, offsetX));
+  const clampedOffsetY = Math.min(maxOffsetY, Math.max(-maxOffsetY, offsetY));
+
+  return {
+    drawWidth,
+    drawHeight,
+    drawX: (AVATAR_EDITOR_CROP_SIZE - drawWidth) / 2 + clampedOffsetX,
+    drawY: (AVATAR_EDITOR_CROP_SIZE - drawHeight) / 2 + clampedOffsetY,
+    clampedOffsetX,
+    clampedOffsetY,
+    effectiveScale,
+  };
+};
+
+const getAvatarSourceCrop = (
+  imageWidth: number,
+  imageHeight: number,
+  zoom: number,
+  offsetX: number,
+  offsetY: number,
+) => {
+  const geometry = getAvatarDrawGeometry(imageWidth, imageHeight, zoom, offsetX, offsetY);
+  const cropSizeInSourcePixels = AVATAR_EDITOR_CROP_SIZE / geometry.effectiveScale;
+  const centerX = imageWidth / 2 - geometry.clampedOffsetX / geometry.effectiveScale;
+  const centerY = imageHeight / 2 - geometry.clampedOffsetY / geometry.effectiveScale;
+  const sx = Math.min(
+    Math.max(0, centerX - cropSizeInSourcePixels / 2),
+    Math.max(0, imageWidth - cropSizeInSourcePixels),
+  );
+  const sy = Math.min(
+    Math.max(0, centerY - cropSizeInSourcePixels / 2),
+    Math.max(0, imageHeight - cropSizeInSourcePixels),
+  );
+
+  return {
+    sx,
+    sy,
+    sSize: cropSizeInSourcePixels,
+  };
+};
+
 function AccountProfilePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -134,11 +206,24 @@ function AccountProfilePageContent() {
   const [mainRole, setMainRole] = useState<string[]>([]);
   const [topPicks, setTopPicks] = useState<string[]>([]);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarEditorOpen, setAvatarEditorOpen] = useState(false);
+  const [avatarEditorImageSrc, setAvatarEditorImageSrc] = useState("");
+  const [avatarEditorMimeType, setAvatarEditorMimeType] = useState("image/png");
+  const [avatarEditorImageSize, setAvatarEditorImageSize] = useState<{ width: number; height: number } | null>(null);
+  const [avatarZoom, setAvatarZoom] = useState(1);
+  const [avatarOffsetX, setAvatarOffsetX] = useState(0);
+  const [avatarOffsetY, setAvatarOffsetY] = useState(0);
+  const [draggingAvatar, setDraggingAvatar] = useState(false);
+  const avatarDragStartRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const hasDiscordLinked = discordUserId.trim().length > 0;
   const resolvedDiscordTag = hasDiscordLinked ? (discordUsername || discordTag) : discordTag;
+  const visibleHeroGroups = OVERWATCH_HEROES.filter((group) =>
+    mainRole.some((role) => MAIN_ROLE_TO_HERO_GROUP[role] === group.role),
+  );
+  const allowedHeroNames = new Set(visibleHeroGroups.flatMap((group) => group.heroes));
 
   useEffect(() => {
     const discordStatus = searchParams.get("discord") || "";
@@ -248,6 +333,51 @@ function AccountProfilePageContent() {
     loadProfile();
   }, [router]);
 
+  useEffect(() => {
+    if (allowedHeroNames.size === 0) {
+      return;
+    }
+
+    setTopPicks((prev) => {
+      const next = prev.filter((hero) => allowedHeroNames.has(hero));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [mainRole]);
+
+  useEffect(() => {
+    if (!avatarEditorImageSize) {
+      return;
+    }
+
+    const geometry = getAvatarDrawGeometry(
+      avatarEditorImageSize.width,
+      avatarEditorImageSize.height,
+      avatarZoom,
+      avatarOffsetX,
+      avatarOffsetY,
+    );
+
+    if (Math.abs(geometry.clampedOffsetX - avatarOffsetX) > 0.01) {
+      setAvatarOffsetX(geometry.clampedOffsetX);
+    }
+    if (Math.abs(geometry.clampedOffsetY - avatarOffsetY) > 0.01) {
+      setAvatarOffsetY(geometry.clampedOffsetY);
+    }
+  }, [avatarEditorImageSize, avatarOffsetX, avatarOffsetY, avatarZoom]);
+
+  useEffect(() => {
+    if (!avatarEditorOpen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [avatarEditorOpen]);
+
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
@@ -303,11 +433,130 @@ function AccountProfilePageContent() {
 
     setError("");
     setSuccess("");
+    if (file.type && !file.type.startsWith("image/")) {
+      setError("Please select an image file.");
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+        reader.onerror = () => reject(new Error("Could not read image."));
+        reader.readAsDataURL(file);
+      });
+
+      if (!dataUrl) {
+        setError("Could not open image.");
+        return;
+      }
+
+      const imageSize = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => {
+          resolve({ width: image.naturalWidth, height: image.naturalHeight });
+        };
+        image.onerror = () => reject(new Error("Could not decode image."));
+        image.src = dataUrl;
+      });
+
+      setAvatarEditorImageSrc(dataUrl);
+      setAvatarEditorImageSize(imageSize);
+      setAvatarEditorMimeType(file.type || "image/png");
+      setAvatarZoom(1);
+      setAvatarOffsetX(0);
+      setAvatarOffsetY(0);
+      setAvatarEditorOpen(true);
+    } catch {
+      setError("Could not open avatar editor.");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const closeAvatarEditor = () => {
+    setAvatarEditorOpen(false);
+    setDraggingAvatar(false);
+    avatarDragStartRef.current = null;
+  };
+
+  const uploadEditedAvatar = async () => {
+    if (!avatarEditorImageSrc || !avatarEditorImageSize) {
+      setError("No image selected.");
+      return;
+    }
+
+    setError("");
+    setSuccess("");
     setUploadingAvatar(true);
 
     try {
+      const sourceCrop = getAvatarSourceCrop(
+        avatarEditorImageSize.width,
+        avatarEditorImageSize.height,
+        avatarZoom,
+        avatarOffsetX,
+        avatarOffsetY,
+      );
+
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const nextImage = new Image();
+        nextImage.onload = () => resolve(nextImage);
+        nextImage.onerror = () => reject(new Error("Could not decode avatar image."));
+        nextImage.src = avatarEditorImageSrc;
+      });
+
+      const canvas = document.createElement("canvas");
+      canvas.width = AVATAR_EDITOR_OUTPUT_SIZE;
+      canvas.height = AVATAR_EDITOR_OUTPUT_SIZE;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        setError("Could not render avatar.");
+        return;
+      }
+
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = "high";
+      context.clearRect(0, 0, AVATAR_EDITOR_OUTPUT_SIZE, AVATAR_EDITOR_OUTPUT_SIZE);
+      context.save();
+      context.beginPath();
+      context.arc(
+        AVATAR_EDITOR_OUTPUT_SIZE / 2,
+        AVATAR_EDITOR_OUTPUT_SIZE / 2,
+        AVATAR_EDITOR_OUTPUT_SIZE / 2,
+        0,
+        Math.PI * 2,
+      );
+      context.closePath();
+      context.clip();
+      context.drawImage(
+        image,
+        sourceCrop.sx,
+        sourceCrop.sy,
+        sourceCrop.sSize,
+        sourceCrop.sSize,
+        0,
+        0,
+        AVATAR_EDITOR_OUTPUT_SIZE,
+        AVATAR_EDITOR_OUTPUT_SIZE,
+      );
+      context.restore();
+
+      const fallbackMime = "image/png";
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((value) => resolve(value), fallbackMime, 0.92);
+      });
+
+      if (!blob) {
+        setError("Could not create cropped avatar image.");
+        return;
+      }
+
+      const extension = "png";
+      const croppedFile = new File([blob], `avatar-cropped.${extension}`, { type: blob.type });
       const formData = new FormData();
-      formData.append("avatar", file);
+      formData.append("avatar", croppedFile);
 
       const response = await fetch("/api/account/profile/avatar", {
         method: "POST",
@@ -317,7 +566,6 @@ function AccountProfilePageContent() {
       if (!response.ok) {
         const data = (await response.json()) as { error?: string };
         setError(data.error || "Could not upload avatar.");
-        setUploadingAvatar(false);
         return;
       }
 
@@ -327,13 +575,82 @@ function AccountProfilePageContent() {
       }
       setSuccess("Avatar uploaded.");
       notifyAppSessionChanged();
-      setUploadingAvatar(false);
+      closeAvatarEditor();
     } catch {
       setError("Could not upload avatar.");
-      setUploadingAvatar(false);
     } finally {
-      event.target.value = "";
+      setUploadingAvatar(false);
     }
+  };
+
+  const handleAvatarWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+    event.preventDefault();
+
+    const nextZoom = Math.min(
+      avatarEditorSliderMaxZoom,
+      Math.max(1, avatarZoom + (event.deltaY < 0 ? 0.12 : -0.12)),
+    );
+
+    if (avatarEditorImageSize) {
+      const geometry = getAvatarDrawGeometry(
+        avatarEditorImageSize.width,
+        avatarEditorImageSize.height,
+        nextZoom,
+        avatarOffsetX,
+        avatarOffsetY,
+      );
+      setAvatarOffsetX(geometry.clampedOffsetX);
+      setAvatarOffsetY(geometry.clampedOffsetY);
+    }
+    setAvatarZoom(nextZoom);
+  };
+
+  const resetAvatarEditorView = () => {
+    setAvatarZoom(1);
+    setAvatarOffsetX(0);
+    setAvatarOffsetY(0);
+  };
+
+  const handleAvatarPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!avatarEditorImageSize) {
+      return;
+    }
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDraggingAvatar(true);
+    avatarDragStartRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      offsetX: avatarOffsetX,
+      offsetY: avatarOffsetY,
+    };
+  };
+
+  const handleAvatarPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggingAvatar || !avatarEditorImageSize || !avatarDragStartRef.current) {
+      return;
+    }
+
+    const deltaX = event.clientX - avatarDragStartRef.current.x;
+    const deltaY = event.clientY - avatarDragStartRef.current.y;
+    const geometry = getAvatarDrawGeometry(
+      avatarEditorImageSize.width,
+      avatarEditorImageSize.height,
+      avatarZoom,
+      avatarDragStartRef.current.offsetX + deltaX,
+      avatarDragStartRef.current.offsetY + deltaY,
+    );
+
+    setAvatarOffsetX(geometry.clampedOffsetX);
+    setAvatarOffsetY(geometry.clampedOffsetY);
+  };
+
+  const handleAvatarPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    setDraggingAvatar(false);
+    avatarDragStartRef.current = null;
   };
 
   const handleLogout = async () => {
@@ -354,11 +671,22 @@ function AccountProfilePageContent() {
     );
   }
 
+  const avatarEditorGeometry = avatarEditorImageSize
+    ? getAvatarDrawGeometry(
+        avatarEditorImageSize.width,
+        avatarEditorImageSize.height,
+        avatarZoom,
+        avatarOffsetX,
+        avatarOffsetY,
+      )
+    : null;
+  const avatarEditorSliderMaxZoom = AVATAR_EDITOR_MAX_ZOOM_CAP;
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       <form
         onSubmit={onSubmit}
-        className="min-h-screen w-full space-y-6 bg-gradient-to-br from-black via-zinc-900 to-black p-6"
+        className="min-h-screen w-full space-y-6 bg-gradient-to-br from-black via-zinc-900 to-black p-4 sm:p-6"
       >
         <div className="flex items-center justify-end gap-3">
             <NotificationCenter />
@@ -371,26 +699,26 @@ function AccountProfilePageContent() {
             </button>
         </div>
 
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-6 py-5">
-          <h1 className="text-4xl font-black text-orange-400">Profile</h1>
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-4 sm:px-6 sm:py-5">
+          <h1 className="text-3xl font-black text-orange-400 sm:text-4xl">Profile</h1>
           <p className="mt-1 text-sm text-zinc-300">Manage your full account profile, rank, roles, heroes, and showcase info.</p>
         </div>
 
-        <div className="grid min-h-[78vh] gap-6 xl:grid-cols-[360px_minmax(0,1fr)_320px]">
+        <div className="grid min-h-[78vh] gap-6 xl:grid-cols-[minmax(260px,340px)_minmax(0,1fr)_minmax(240px,320px)]">
           <aside className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
             <div className="flex flex-col items-center text-center">
               {avatarUrl ? (
-                <img src={avatarUrl} alt="Profile avatar" className="h-48 w-48 rounded-full border-2 border-zinc-700 object-cover" />
+                <img src={avatarUrl} alt="Profile avatar" className="h-36 w-36 rounded-full border-2 border-zinc-700 object-cover sm:h-44 sm:w-44 xl:h-48 xl:w-48" />
               ) : (
-                <div className="flex h-48 w-48 items-center justify-center rounded-full border-2 border-zinc-700 bg-zinc-800 text-6xl">👤</div>
+                <div className="flex h-36 w-36 items-center justify-center rounded-full border-2 border-zinc-700 bg-zinc-800 text-5xl sm:h-44 sm:w-44 sm:text-6xl xl:h-48 xl:w-48">👤</div>
               )}
-              <p className="mt-4 font-heading text-4xl font-black text-white">{accountName || "Unknown"}</p>
+              <p className="mt-4 break-all font-heading text-3xl font-black text-white sm:text-4xl">{accountName || "Unknown"}</p>
               <p className="mt-1 text-sm text-zinc-400">Account Profile</p>
               <label className="mt-5 inline-block cursor-pointer rounded-lg border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 hover:bg-zinc-800">
                 {uploadingAvatar ? "Uploading..." : "Upload Profile Picture"}
                 <input
                   type="file"
-                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  accept="image/*"
                   onChange={onAvatarFileChange}
                   className="hidden"
                   disabled={uploadingAvatar}
@@ -421,11 +749,11 @@ function AccountProfilePageContent() {
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-zinc-400">Twitter</span>
-                <span className="max-w-[180px] truncate text-right font-semibold text-zinc-200">{twitterUrl || "Not set"}</span>
+                <span className="max-w-[140px] truncate text-right font-semibold text-zinc-200 sm:max-w-[180px]">{twitterUrl || "Not set"}</span>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-zinc-400">Faceit</span>
-                <span className="max-w-[180px] truncate text-right font-semibold text-zinc-200">{faceitUrl || "Not set"}</span>
+                <span className="max-w-[140px] truncate text-right font-semibold text-zinc-200 sm:max-w-[180px]">{faceitUrl || "Not set"}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-zinc-400">Scrim Rank</span>
@@ -437,13 +765,13 @@ function AccountProfilePageContent() {
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-zinc-400">Regions</span>
-                <span className="max-w-[180px] truncate text-right font-semibold text-zinc-200">
+                <span className="max-w-[140px] truncate text-right font-semibold text-zinc-200 sm:max-w-[180px]">
                   {region.length > 0 ? region.join(", ") : "None"}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-zinc-400">Top Heroes</span>
-                <span className="max-w-[180px] truncate text-right font-semibold text-zinc-200">
+                <span className="max-w-[140px] truncate text-right font-semibold text-zinc-200 sm:max-w-[180px]">
                   {topPicks.length > 0 ? topPicks.join(", ") : "None"}
                 </span>
               </div>
@@ -523,76 +851,6 @@ function AccountProfilePageContent() {
                 placeholder="Tell players about your playstyle, availability, and goals..."
               />
             </label>
-
-            <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-              <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">Pro Matches</p>
-              <p className="text-xs text-zinc-400">Add notable matches/tournaments like a mini wiki timeline.</p>
-
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <input
-                  value={pendingProMatch}
-                  onChange={(event) => setPendingProMatch(event.target.value)}
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm"
-                  maxLength={120}
-                  placeholder="e.g. 2025 — OWCS Stage 2 vs Team XYZ https://liquipedia.net/..."
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    const trimmed = pendingProMatch.trim();
-                    if (!trimmed) return;
-                    const urlMatch = trimmed.match(/https?:\/\/\S+/i);
-                    if (urlMatch && !isAllowedProMatchUrl(urlMatch[0])) {
-                      setError("Pro match links must be from Liquipedia only for now.");
-                      return;
-                    }
-                    if (proMatches.length >= 20) return;
-                    setProMatches((prev) => [...prev, trimmed]);
-                    setPendingProMatch("");
-                  }}
-                  disabled={!pendingProMatch.trim() || proMatches.length >= 20}
-                  className="rounded-lg border border-orange-500/50 bg-orange-500/10 px-4 py-2 text-sm font-semibold text-orange-300 hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Add Match
-                </button>
-              </div>
-              <p className="text-xs text-zinc-500">Allowed links: liquipedia.net</p>
-
-              {proMatches.length > 0 ? (
-                <ul className="space-y-2">
-                  {proMatches.map((entry, index) => (
-                    <li key={`${entry}-${index}`} className="flex items-start justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2">
-                      {(() => {
-                        const link = extractEntryLink(entry);
-                        if (!link.href) {
-                          return <span className="text-sm text-zinc-200">{link.label}</span>;
-                        }
-                        return (
-                          <a
-                            href={link.href}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-sm font-semibold text-orange-300 hover:text-orange-200"
-                            title={link.href}
-                          >
-                            {link.label}
-                          </a>
-                        );
-                      })()}
-                      <button
-                        type="button"
-                        onClick={() => setProMatches((prev) => prev.filter((_, position) => position !== index))}
-                        className="shrink-0 text-xs font-semibold text-red-300 hover:text-red-200"
-                      >
-                        Remove
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-xs text-zinc-500">No pro matches added yet.</p>
-              )}
-            </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block space-y-1 text-sm">
@@ -713,35 +971,41 @@ function AccountProfilePageContent() {
                 </div>
               ) : null}
 
-              <div className="space-y-3">
-                {OVERWATCH_HEROES.map((group) => (
-                  <div key={group.role}>
-                    <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-zinc-600">{group.role}</p>
-                    <div className="flex flex-wrap gap-1">
-                      {group.heroes.map((hero) => {
-                        const selected = topPicks.includes(hero);
-                        return (
-                          <button
-                            key={hero}
-                            type="button"
-                            disabled={!selected && topPicks.length >= 3}
-                            onClick={() => {
-                              if (selected) {
-                                setTopPicks((prev) => prev.filter((h) => h !== hero));
-                              } else if (topPicks.length < 3) {
-                                setTopPicks((prev) => [...prev, hero]);
-                              }
-                            }}
-                            className={`rounded-md border px-2 py-1 text-xs font-medium transition ${selected ? "border-orange-500 bg-orange-500/20 text-orange-300" : topPicks.length >= 3 ? "cursor-not-allowed border-zinc-800 bg-zinc-900 text-zinc-600" : "border-zinc-700 bg-zinc-800 text-zinc-300 hover:border-orange-500/40 hover:text-white"}`}
-                          >
-                            {hero}
-                          </button>
-                        );
-                      })}
+              {visibleHeroGroups.length === 0 ? (
+                <p className="rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-xs text-zinc-500">
+                  Choose at least one main role to unlock matching hero selections.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {visibleHeroGroups.map((group) => (
+                    <div key={group.role}>
+                      <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-zinc-600">{group.role}</p>
+                      <div className="flex flex-wrap gap-1">
+                        {group.heroes.map((hero) => {
+                          const selected = topPicks.includes(hero);
+                          return (
+                            <button
+                              key={hero}
+                              type="button"
+                              disabled={!selected && topPicks.length >= 3}
+                              onClick={() => {
+                                if (selected) {
+                                  setTopPicks((prev) => prev.filter((h) => h !== hero));
+                                } else if (topPicks.length < 3) {
+                                  setTopPicks((prev) => [...prev, hero]);
+                                }
+                              }}
+                              className={`rounded-md border px-2 py-1 text-xs font-medium transition ${selected ? "border-orange-500 bg-orange-500/20 text-orange-300" : topPicks.length >= 3 ? "cursor-not-allowed border-zinc-800 bg-zinc-900 text-zinc-600" : "border-zinc-700 bg-zinc-800 text-zinc-300 hover:border-orange-500/40 hover:text-white"}`}
+                            >
+                              {hero}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
@@ -766,6 +1030,76 @@ function AccountProfilePageContent() {
                   placeholder="https://www.faceit.com/en/players/yourname"
                 />
               </label>
+            </div>
+
+            <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+              <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">Pro Matches</p>
+              <p className="text-xs text-zinc-400">Add notable matches/tournaments like a mini wiki timeline.</p>
+
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  value={pendingProMatch}
+                  onChange={(event) => setPendingProMatch(event.target.value)}
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm"
+                  maxLength={120}
+                  placeholder="e.g. 2025 — OWCS Stage 2 vs Team XYZ https://liquipedia.net/..."
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const trimmed = pendingProMatch.trim();
+                    if (!trimmed) return;
+                    const urlMatch = trimmed.match(/https?:\/\/\S+/i);
+                    if (urlMatch && !isAllowedProMatchUrl(urlMatch[0])) {
+                      setError("Pro match links must be from Liquipedia only for now.");
+                      return;
+                    }
+                    if (proMatches.length >= 20) return;
+                    setProMatches((prev) => [...prev, trimmed]);
+                    setPendingProMatch("");
+                  }}
+                  disabled={!pendingProMatch.trim() || proMatches.length >= 20}
+                  className="rounded-lg border border-orange-500/50 bg-orange-500/10 px-4 py-2 text-sm font-semibold text-orange-300 hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Add Match
+                </button>
+              </div>
+              <p className="text-xs text-zinc-500">Allowed links: liquipedia.net</p>
+
+              {proMatches.length > 0 ? (
+                <ul className="space-y-2">
+                  {proMatches.map((entry, index) => (
+                    <li key={`${entry}-${index}`} className="flex items-start justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2">
+                      {(() => {
+                        const link = extractEntryLink(entry);
+                        if (!link.href) {
+                          return <span className="text-sm text-zinc-200">{link.label}</span>;
+                        }
+                        return (
+                          <a
+                            href={link.href}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm font-semibold text-orange-300 hover:text-orange-200"
+                            title={link.href}
+                          >
+                            {link.label}
+                          </a>
+                        );
+                      })()}
+                      <button
+                        type="button"
+                        onClick={() => setProMatches((prev) => prev.filter((_, position) => position !== index))}
+                        className="shrink-0 text-xs font-semibold text-red-300 hover:text-red-200"
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-zinc-500">No pro matches added yet.</p>
+              )}
             </div>
           </section>
 
@@ -816,6 +1150,126 @@ function AccountProfilePageContent() {
           </div>
         </div>
       </form>
+
+      {avatarEditorOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-4 backdrop-blur-[2px]">
+          <div className="w-full max-w-[430px] rounded-2xl border border-zinc-700 bg-zinc-950 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.55)]">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-xl font-black text-white">Edit Image</h2>
+                <p className="mt-1 text-xs text-zinc-400">Drag to move and use zoom to frame your avatar.</p>
+              </div>
+              <button
+                type="button"
+                onClick={closeAvatarEditor}
+                className="-mr-1 -mt-1 rounded-md p-1.5 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                aria-label="Close avatar editor"
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mt-5 rounded-lg border border-zinc-800 bg-zinc-900/70 p-4">
+              <div
+                className="relative mx-auto overflow-hidden rounded-lg"
+                onWheel={handleAvatarWheel}
+                style={{ width: `${AVATAR_EDITOR_FRAME_SIZE}px`, height: `${AVATAR_EDITOR_FRAME_SIZE}px` }}
+              >
+                <div className="pointer-events-none absolute inset-0 bg-black/35" />
+                <div
+                  className={`absolute overflow-hidden rounded-full ${draggingAvatar ? "cursor-grabbing" : "cursor-grab"}`}
+                  onPointerDown={handleAvatarPointerDown}
+                  onPointerMove={handleAvatarPointerMove}
+                  onPointerUp={handleAvatarPointerUp}
+                  onPointerCancel={handleAvatarPointerUp}
+                  style={{
+                    left: `${AVATAR_EDITOR_CROP_OFFSET}px`,
+                    top: `${AVATAR_EDITOR_CROP_OFFSET}px`,
+                    width: `${AVATAR_EDITOR_CROP_SIZE}px`,
+                    height: `${AVATAR_EDITOR_CROP_SIZE}px`,
+                    touchAction: "none",
+                  }}
+                >
+                  {avatarEditorGeometry ? (
+                    <img
+                      src={avatarEditorImageSrc}
+                      alt="Avatar preview"
+                      className="pointer-events-none absolute select-none"
+                      draggable={false}
+                      style={{
+                        left: `${avatarEditorGeometry.drawX}px`,
+                        top: `${avatarEditorGeometry.drawY}px`,
+                        width: `${avatarEditorGeometry.drawWidth}px`,
+                        height: `${avatarEditorGeometry.drawHeight}px`,
+                        maxWidth: "none",
+                        maxHeight: "none",
+                      }}
+                    />
+                  ) : null}
+                </div>
+                <div
+                  className="pointer-events-none absolute rounded-full shadow-[0_0_0_1200px_rgba(0,0,0,0.35),0_0_0_4px_rgba(255,255,255,0.95)]"
+                  style={{
+                    left: `${AVATAR_EDITOR_CROP_OFFSET}px`,
+                    top: `${AVATAR_EDITOR_CROP_OFFSET}px`,
+                    width: `${AVATAR_EDITOR_CROP_SIZE}px`,
+                    height: `${AVATAR_EDITOR_CROP_SIZE}px`,
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-2 text-zinc-300">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-semibold text-zinc-200">Zoom</span>
+                <span className="text-zinc-400">{avatarZoom.toFixed(2)}x</span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={avatarEditorSliderMaxZoom}
+                step={0.01}
+                value={avatarZoom}
+                onChange={(event) => {
+                  setAvatarZoom(Number(event.target.value));
+                }}
+                className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-zinc-800 accent-orange-500"
+              />
+            </div>
+
+            <div className="mt-6 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={resetAvatarEditorView}
+                className="text-sm font-medium text-zinc-400 hover:text-zinc-200"
+              >
+                Reset
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={closeAvatarEditor}
+                  className="rounded-lg border border-zinc-700 px-5 py-2 text-sm font-semibold text-zinc-200 hover:bg-zinc-800"
+                  disabled={uploadingAvatar}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={uploadEditedAvatar}
+                  className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-semibold text-black hover:bg-orange-400 disabled:opacity-60"
+                  disabled={uploadingAvatar || !avatarEditorImageSrc}
+                >
+                  {uploadingAvatar ? "Applying..." : "Apply"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

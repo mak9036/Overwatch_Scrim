@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 import { getPosterUsernameFromRequest } from "@/lib/account-auth";
 import { getAccountRecordByUsername } from "@/lib/accounts-store";
 import { notifyUserWithDiscordDm } from "@/lib/discord-dm";
-import { getMessagesForUser, sendMessage } from "@/lib/messages-store";
+import { getLatestSentMessage, getMessagesForUser, sendMessage } from "@/lib/messages-store";
+
+const MESSAGE_COOLDOWN_MS = 10 * 60 * 1000;
 
 interface SendMessagePayload {
   recipientUsername?: unknown;
@@ -45,6 +47,26 @@ export async function POST(request: NextRequest) {
   const recipientAccount = await getAccountRecordByUsername(recipientUsername);
   if (!recipientAccount) {
     return NextResponse.json({ error: "That user does not exist." }, { status: 404 });
+  }
+
+  const latestMessage = await getLatestSentMessage(senderUsername, recipientAccount.username);
+  if (latestMessage) {
+    const lastSentAt = new Date(latestMessage.createdAt).getTime();
+    if (Number.isFinite(lastSentAt)) {
+      const retryAfterMs = lastSentAt + MESSAGE_COOLDOWN_MS - Date.now();
+      if (retryAfterMs > 0) {
+        const retryAfterMinutes = Math.ceil(retryAfterMs / 60000);
+        return NextResponse.json(
+          {
+            error:
+              retryAfterMinutes <= 1
+                ? `You can message ${recipientAccount.username} again in less than 1 minute.`
+                : `You can message ${recipientAccount.username} again in about ${retryAfterMinutes} minutes.`,
+          },
+          { status: 429 },
+        );
+      }
+    }
   }
 
   const message = await sendMessage(senderUsername, recipientAccount.username, body);

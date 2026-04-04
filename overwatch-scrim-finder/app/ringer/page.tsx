@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import NotificationCenter from "@/components/notification-center";
 import { formatRoleList } from "@/lib/utils";
-import { convertTimeBetweenTimeZones, getTimeZoneAbbreviation, resolveTimeZoneFromCountryCode } from "@/lib/timezones";
+import { convertTimeBetweenTimeZones, formatTimeForDisplay, getTimeZoneAbbreviation, resolveTimeZoneFromCountryCode } from "@/lib/timezones";
 
 interface RingerPost {
   id: number;
@@ -17,7 +17,6 @@ interface RingerPost {
   availableFrom?: string;
   availableUntil?: string;
   preferredTimeZone?: string;
-  durationHours: 12 | 24;
   createdAt: number;
   expiresAt: number;
 }
@@ -30,6 +29,44 @@ const formatOwRank = (value: string) => {
     .join(" ");
 };
 
+const HOUR_OPTIONS = Array.from({ length: 12 }, (_, index) => {
+  const hour = index + 1;
+  return { value: String(hour), label: String(hour) };
+});
+
+const MINUTE_OPTIONS = ["00", "15", "30", "45"];
+const PERIOD_OPTIONS = ["AM", "PM"] as const;
+
+const parseTimeValue = (value: string) => {
+  if (!/^([01]\d|2[0-3]):(00|15|30|45)$/.test(value)) {
+    return { hour: "", minute: "00", period: "AM" as const };
+  }
+
+  const [hourText, minute] = value.split(":");
+  const hours24 = Number(hourText);
+  const period = hours24 >= 12 ? "PM" : "AM";
+  const hour = String(hours24 % 12 || 12);
+  return { hour, minute, period };
+};
+
+const buildTimeValue = (hour: string, minute: string, period: "AM" | "PM") => {
+  if (!hour) {
+    return "";
+  }
+
+  const parsedHour = Number(hour);
+  if (!Number.isInteger(parsedHour) || parsedHour < 1 || parsedHour > 12) {
+    return "";
+  }
+
+  let hours24 = parsedHour % 12;
+  if (period === "PM") {
+    hours24 += 12;
+  }
+
+  return `${String(hours24).padStart(2, "0")}:${minute}`;
+};
+
 const formatRemaining = (expiresAt: number, now: number) => {
   const ms = Math.max(expiresAt - now, 0);
   const totalMinutes = Math.floor(ms / 60000);
@@ -37,6 +74,68 @@ const formatRemaining = (expiresAt: number, now: number) => {
   const minutes = totalMinutes % 60;
   return `${hours}h ${String(minutes).padStart(2, "0")}m`;
 };
+
+function TimeSelectionField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const parts = parseTimeValue(value);
+
+  return (
+    <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-3">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">{label}</p>
+      <div className="grid grid-cols-[minmax(0,1fr)_88px_88px] gap-2">
+        <select
+          value={parts.hour}
+          onChange={(event) => onChange(buildTimeValue(event.target.value, parts.minute, parts.period))}
+          className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm font-semibold text-white outline-none transition focus:border-orange-500/60"
+          title={`${label} hour`}
+        >
+          <option value="">Hour</option>
+          {HOUR_OPTIONS.map((option) => (
+            <option key={`${label}-hour-${option.value}`} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={parts.minute}
+          onChange={(event) => onChange(buildTimeValue(parts.hour, event.target.value, parts.period))}
+          className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm font-semibold text-white outline-none transition focus:border-orange-500/60"
+          title={`${label} minutes`}
+          disabled={!parts.hour}
+        >
+          {MINUTE_OPTIONS.map((minute) => (
+            <option key={`${label}-minute-${minute}`} value={minute}>
+              :{minute}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={parts.period}
+          onChange={(event) => onChange(buildTimeValue(parts.hour, parts.minute, event.target.value as "AM" | "PM"))}
+          className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm font-semibold text-white outline-none transition focus:border-orange-500/60"
+          title={`${label} period`}
+          disabled={!parts.hour}
+        >
+          {PERIOD_OPTIONS.map((period) => (
+            <option key={`${label}-period-${period}`} value={period}>
+              {period}
+            </option>
+          ))}
+        </select>
+      </div>
+      <p className="mt-2 text-xs text-zinc-500">Quarter-hour slots only.</p>
+    </div>
+  );
+}
 
 export default function RingerPage() {
   const router = useRouter();
@@ -47,13 +146,13 @@ export default function RingerPage() {
   const [accountName, setAccountName] = useState("");
   const [accountAvatarUrl, setAccountAvatarUrl] = useState("");
   const [isManager, setIsManager] = useState(false);
-  const [durationHours, setDurationHours] = useState<12 | 24>(12);
   const [availableFrom, setAvailableFrom] = useState("");
   const [availableUntil, setAvailableUntil] = useState("");
   const [preferredTimeZone, setPreferredTimeZone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [gridColumns, setGridColumns] = useState<1 | 2 | 4>(1);
 
   const load = async () => {
     try {
@@ -113,10 +212,10 @@ export default function RingerPage() {
           (typeof primaryRole === "string" && primaryRole.toLowerCase() === "manager");
         setIsManager(managerDetected);
 
+        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
         const countryCode = typeof data.account?.accountProfile?.country === "string" ? data.account.accountProfile.country : "";
         const countryTimezone = resolveTimeZoneFromCountryCode(countryCode);
-        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-        setPreferredTimeZone(countryTimezone || browserTimezone);
+        setPreferredTimeZone(browserTimezone || countryTimezone || "UTC");
       } catch {
         setAccountName("");
         setIsManager(false);
@@ -135,6 +234,9 @@ export default function RingerPage() {
   const selectedTimeZoneLabel = preferredTimeZone
     ? `${getTimeZoneAbbreviation(preferredTimeZone)} (${preferredTimeZone})`
     : "UTC";
+  const availabilitySummary = availableFrom && availableUntil
+    ? `${formatTimeForDisplay(availableFrom, { timeZone: preferredTimeZone })} to ${formatTimeForDisplay(availableUntil, { timeZone: preferredTimeZone })} ${getTimeZoneAbbreviation(preferredTimeZone)}`
+    : "Choose your start and end time";
 
   const handleLogout = async () => {
     try {
@@ -161,7 +263,7 @@ export default function RingerPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ durationHours, availableFrom, availableUntil, preferredTimeZone }),
+        body: JSON.stringify({ availableFrom, availableUntil, preferredTimeZone }),
       });
 
       const payload = (await response.json()) as { error?: string };
@@ -210,54 +312,82 @@ export default function RingerPage() {
       <div className="mx-auto max-w-5xl p-6 space-y-6">
         <div className="rounded-2xl border border-orange-500/20 bg-zinc-900/60 p-5">
           <h2 className="text-xl font-bold">Ringer Board</h2>
-          <p className="mt-1 text-sm text-zinc-400">Post your availability for 12h or 24h. Posts auto-delete when time runs out.</p>
+          <p className="mt-1 text-sm text-zinc-400">Post your availability window. Posts auto-delete when your selected availability ends.</p>
 
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <label className="text-sm text-zinc-300">Availability</label>
-            <select
-              value={durationHours}
-              onChange={(event) => setDurationHours(event.target.value === "24" ? 24 : 12)}
-              className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm font-semibold text-white"
-            >
-              <option value={12}>12 hours</option>
-              <option value={24}>24 hours</option>
-            </select>
+          <div className="mt-4 space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="text-sm text-zinc-300">Availability</label>
+              <span className="rounded-full border border-zinc-700 bg-zinc-950/70 px-3 py-1 text-xs font-semibold text-zinc-300">
+                Timezone: {selectedTimeZoneLabel}
+              </span>
+            </div>
 
-            <input
-              type="time"
-              value={availableFrom}
-              onChange={(event) => setAvailableFrom(event.target.value)}
-              className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm font-semibold text-white outline-none transition focus:border-orange-500/60"
-              title="Available from"
-            />
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] md:items-end">
+              <TimeSelectionField label="From" value={availableFrom} onChange={setAvailableFrom} />
+              <div className="hidden pb-4 text-xs font-bold uppercase tracking-[0.16em] text-zinc-500 md:block">to</div>
+              <TimeSelectionField label="Until" value={availableUntil} onChange={setAvailableUntil} />
+              <button
+                type="button"
+                onClick={handleCreatePost}
+                disabled={submitting || Boolean(myActivePost) || availableFrom.length === 0 || availableUntil.length === 0}
+                className="rounded-xl bg-orange-500 px-5 py-3 font-semibold text-black hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {submitting ? "Posting..." : myActivePost ? "Active Post Exists" : "Post as Ringer"}
+              </button>
+            </div>
 
-            <span className="text-xs text-zinc-400">to</span>
-
-            <input
-              type="time"
-              value={availableUntil}
-              onChange={(event) => setAvailableUntil(event.target.value)}
-              className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm font-semibold text-white outline-none transition focus:border-orange-500/60"
-              title="Available until"
-            />
-
-            <span className="text-xs text-zinc-400">Timezone: {selectedTimeZoneLabel}</span>
-
-            <button
-              type="button"
-              onClick={handleCreatePost}
-              disabled={submitting || Boolean(myActivePost) || availableFrom.length === 0 || availableUntil.length === 0}
-              className="rounded-xl bg-orange-500 px-5 py-2 font-semibold text-black hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {submitting ? "Posting..." : myActivePost ? "Active Post Exists" : "Post as Ringer"}
-            </button>
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 px-4 py-3 text-sm text-zinc-300">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Selected Window</p>
+              <p className="mt-1 font-semibold text-zinc-100">{availabilitySummary}</p>
+              <p className="mt-1 text-xs text-zinc-500">Shown using your current PC timezone settings.</p>
+            </div>
           </div>
 
           {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
           {successMessage ? <p className="mt-3 text-sm text-green-300">{successMessage}</p> : null}
         </div>
 
-        <div className="space-y-3">
+        <div>
+          <div className="mb-3 ml-auto flex w-fit items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
+            <button
+              type="button"
+              onClick={() => setGridColumns(1)}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide transition ${gridColumns === 1 ? "bg-orange-500 text-black" : "text-zinc-300 hover:text-white"}`}
+              title="1 column"
+            >
+              <span className="sr-only">1 column</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current">
+                <rect x="4" y="4" width="12" height="12" rx="2" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => setGridColumns(2)}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide transition ${gridColumns === 2 ? "bg-orange-500 text-black" : "text-zinc-300 hover:text-white"}`}
+              title="2 columns"
+            >
+              <span className="sr-only">2 columns</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current">
+                <rect x="2" y="4" width="7" height="12" rx="1.5" />
+                <rect x="11" y="4" width="7" height="12" rx="1.5" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => setGridColumns(4)}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide transition ${gridColumns === 4 ? "bg-orange-500 text-black" : "text-zinc-300 hover:text-white"}`}
+              title="4 columns"
+            >
+              <span className="sr-only">4 columns</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current">
+                <rect x="2" y="2" width="7" height="7" rx="1.5" />
+                <rect x="11" y="2" width="7" height="7" rx="1.5" />
+                <rect x="2" y="11" width="7" height="7" rx="1.5" />
+                <rect x="11" y="11" width="7" height="7" rx="1.5" />
+              </svg>
+            </button>
+          </div>
+          <div className={`${gridColumns === 1 ? "space-y-3" : gridColumns === 2 ? "grid grid-cols-1 gap-3 md:grid-cols-2" : "grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4"}`}>
           {loading ? (
             <p className="text-sm text-zinc-500">Loading ringers...</p>
           ) : posts.length === 0 ? (
@@ -315,11 +445,11 @@ export default function RingerPage() {
                   {post.availableFrom && post.availableUntil ? (
                     <div className="mt-1 space-y-1 text-sm text-zinc-200">
                       <p>
-                        Poster time: {post.availableFrom} - {post.availableUntil}{" "}
+                        Poster time: {formatTimeForDisplay(post.availableFrom, { timeZone: post.preferredTimeZone || "UTC" })} - {formatTimeForDisplay(post.availableUntil, { timeZone: post.preferredTimeZone || "UTC" })}{" "}
                         ({post.preferredTimeZone ? `${getTimeZoneAbbreviation(post.preferredTimeZone)}${getTimeZoneAbbreviation(post.preferredTimeZone) !== post.preferredTimeZone ? ` • ${post.preferredTimeZone}` : ""}` : "UTC"})
                       </p>
                       <p>
-                        Your time: {convertTimeBetweenTimeZones(post.availableFrom, post.preferredTimeZone || "UTC", viewerTimeZone)} - {convertTimeBetweenTimeZones(post.availableUntil, post.preferredTimeZone || "UTC", viewerTimeZone)}{" "}
+                        Your time: {formatTimeForDisplay(convertTimeBetweenTimeZones(post.availableFrom, post.preferredTimeZone || "UTC", viewerTimeZone), { timeZone: viewerTimeZone })} - {formatTimeForDisplay(convertTimeBetweenTimeZones(post.availableUntil, post.preferredTimeZone || "UTC", viewerTimeZone), { timeZone: viewerTimeZone })}{" "}
                         ({getTimeZoneAbbreviation(viewerTimeZone)}{getTimeZoneAbbreviation(viewerTimeZone) !== viewerTimeZone ? ` • ${viewerTimeZone}` : ""})
                       </p>
                     </div>
@@ -330,6 +460,7 @@ export default function RingerPage() {
               </div>
             ))
           )}
+          </div>
         </div>
       </div>
     </div>

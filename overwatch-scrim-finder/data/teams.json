@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "id": 1775175639120,
+    "name": "123",
+    "avatarUrl": "",
+    "managerUsername": "Devil9036",
+    "tournaments": [],
+    "members": [
+      {
+        "username": "Devil9036",
+        "role": "manager"
+      }
+    ],
+    "invites": [],
+    "createdAt": "2026-04-03T00:20:39.120Z"
+  }
+]

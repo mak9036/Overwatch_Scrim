@@ -55,7 +55,7 @@ const messages = {
       copyright: "© {year} Overwatch Scrim Finder",
     },
     home: {
-      brand: "LFFinder",
+      brand: "Necoss Slave House",
       nav: {
         home: "HOME",
         teams: "TEAMS",
@@ -145,7 +145,7 @@ const messages = {
       selectedCount: "{count} selected / تم الاختيار {count}",
       guest: "Guest / زائر",
       cancel: "Cancel / إلغاء",
-      open: "OPEN / مفتوح",
+      open: "OPEN / فتح",
       profile: "Profile / البروفايل",
       createAccount: "Create Account / إنشاء حساب",
       login: "Login / تسجيل دخول",
@@ -167,7 +167,7 @@ const messages = {
       copyright: "© {year} Overwatch Scrim Finder / موقع سكرم أوفرواتش",
     },
     home: {
-      brand: "LFFinder",
+      brand: "Necoss Slave House",
       nav: {
         home: "Home / الرئيسية",
         teams: "Teams / الفرق",
@@ -279,7 +279,7 @@ const messages = {
       copyright: "© {year} 오버워치 스크림 파인더",
     },
     home: {
-      brand: "LFFinder",
+      brand: "Necoss Slave House",
       nav: {
         home: "홈",
         teams: "팀",
@@ -391,7 +391,7 @@ const messages = {
       copyright: "© {year} Overwatch Scrim Finder",
     },
     home: {
-      brand: "LFFinder",
+      brand: "Necoss Slave House",
       nav: {
         home: "START",
         teams: "TEAMS",

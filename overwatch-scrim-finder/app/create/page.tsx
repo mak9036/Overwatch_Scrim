@@ -64,7 +64,7 @@ const MultiSelectField = ({
         <span className="min-w-0 flex-1 truncate">{summary}</span>
         <span className="ml-3 text-xs text-zinc-400">▾</span>
       </summary>
-      <div className="absolute left-0 top-full z-20 mt-2 w-full min-w-[13rem] rounded-lg border border-zinc-700 bg-zinc-900 p-2 shadow-xl">
+      <div className="absolute left-0 top-full z-20 mt-2 w-[min(20rem,calc(100vw-2rem))] max-w-full rounded-lg border border-zinc-700 bg-zinc-900 p-2 shadow-xl">
         <div className={inlineOptions ? "flex flex-wrap gap-2" : "space-y-1"}>
           {options.map((option) => (
             <label
@@ -179,6 +179,7 @@ export default function CreatePostPage() {
   const [accountName, setAccountName] = useState("");
   const [accountAvatarUrl, setAccountAvatarUrl] = useState("");
   const [accountLeaderRole, setAccountLeaderRole] = useState("Player");
+  const [accountLeaderRoles, setAccountLeaderRoles] = useState<string[]>(["Player"]);
   const [profileMainRoles, setProfileMainRoles] = useState<string[]>([]);
   const [rank, setRank] = useState("");
   const [owRank, setOwRank] = useState("");
@@ -194,7 +195,8 @@ export default function CreatePostPage() {
   } | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const canCreateTeamLfp = accountLeaderRole === "Manager";
+  const canCreateTeamLfp =
+    accountLeaderRole === "Manager" || accountLeaderRoles.includes("Manager");
   const isTeamPost = canCreateTeamLfp && Boolean(currentTeam);
 
   const handleLogout = async () => {
@@ -224,6 +226,7 @@ export default function CreatePostPage() {
               rank?: string;
               region?: string[];
               leaderRole?: string;
+              leaderRoles?: string[];
               mainRole?: string[];
             };
           };
@@ -242,6 +245,13 @@ export default function CreatePostPage() {
         }
         if (typeof data.account.gameProfile?.leaderRole === "string") {
           setAccountLeaderRole(data.account.gameProfile.leaderRole);
+        }
+        if (Array.isArray(data.account.gameProfile?.leaderRoles) && data.account.gameProfile.leaderRoles.length > 0) {
+          setAccountLeaderRoles(
+            data.account.gameProfile.leaderRoles.filter((entry): entry is string => typeof entry === "string"),
+          );
+        } else if (typeof data.account.gameProfile?.leaderRole === "string") {
+          setAccountLeaderRoles([data.account.gameProfile.leaderRole]);
         }
         if (Array.isArray(data.account.gameProfile?.mainRole)) {
           setProfileMainRoles(data.account.gameProfile.mainRole.filter((entry): entry is string => typeof entry === "string"));
@@ -349,6 +359,7 @@ export default function CreatePostPage() {
           leader: isTeamPost ? currentTeam?.name : accountName,
           avatarUrl: accountAvatarUrl,
           leaderRole: isTeamPost ? "Team" : isCoachAccountPost ? "Coach" : "Player",
+          leaderRoles: isTeamPost ? ["Team"] : accountLeaderRoles,
           members: isTeamPost
             ? currentTeam?.members.map((member) => ({
                 name: member.username,

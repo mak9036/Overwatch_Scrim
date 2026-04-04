@@ -11,7 +11,17 @@ interface RouteContext {
 
 interface IncomingPayload {
   action?: unknown;
+  matchDetails?: unknown;
 }
+
+interface IncomingMatchDetails {
+  scheduledTime?: unknown;
+  lobby?: unknown;
+  notes?: unknown;
+}
+
+const sanitizeText = (value: unknown, maxLength: number) =>
+  typeof value === "string" ? value.trim().slice(0, maxLength) : "";
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   if (!isPosterRequest(request)) {
@@ -49,12 +59,25 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Action must be accept or decline." }, { status: 400 });
   }
 
+  const rawMatchDetails = payload.matchDetails as IncomingMatchDetails | undefined;
+  const scheduledTime = sanitizeText(rawMatchDetails?.scheduledTime, 120);
+  const lobby = sanitizeText(rawMatchDetails?.lobby, 120);
+  const notes = sanitizeText(rawMatchDetails?.notes, 300);
+
+  if (action === "accept" && !scheduledTime) {
+    return NextResponse.json({ error: "Scheduled time is required when accepting a scrim request." }, { status: 400 });
+  }
+
   const current = (await readScrimRequests()).find((entry) => entry.id === requestId);
   if (!current) {
     return NextResponse.json({ error: "Request not found." }, { status: 404 });
   }
 
-  const updated = await respondToScrimRequest(requestId, username, action);
+  const updated = await respondToScrimRequest(requestId, username, action, {
+    scheduledTime,
+    lobby: lobby || undefined,
+    notes: notes || undefined,
+  });
   if (!updated) {
     return NextResponse.json({ error: "Could not update request." }, { status: 404 });
   }
@@ -64,7 +87,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       await sendMessage(
         username,
         updated.requesterManagerUsername,
-        `Scrim accepted: ${updated.targetTeamName} accepted your request from ${updated.requesterTeamName}.`,
+        `Scrim accepted: ${updated.targetTeamName} accepted your request from ${updated.requesterTeamName}. Time: ${updated.matchDetails?.scheduledTime || "TBD"}.`,
       );
 
       const teams = await getAllTeams();
@@ -76,7 +99,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
             sendMessage(
               "ScrimBot",
               recipientUsername,
-              `Your manager accepted a scrim request. Upcoming scrim: ${updated.targetTeamName} vs ${updated.requesterTeamName}. Check Match Finder/messages for details.`,
+              `Your manager accepted a scrim request. Upcoming scrim: ${updated.targetTeamName} vs ${updated.requesterTeamName}. Time: ${updated.matchDetails?.scheduledTime || "TBD"}. Check Match Finder/messages for details.`,
             ),
           ),
         );

@@ -43,6 +43,8 @@ function MessagesPageContent() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [sending, setSending] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [gridColumns, setGridColumns] = useState<1 | 2 | 4>(1);
   const defaultRecipient = searchParams.get("to") || "";
 
   const loadMessages = async () => {
@@ -135,6 +137,32 @@ function MessagesPageContent() {
     }
   };
 
+  const deleteMessage = async (messageId: number) => {
+    setError("");
+    setSuccess("");
+    setDeletingId(messageId);
+
+    try {
+      const response = await fetch(`/api/messages/${messageId}`, {
+        method: "DELETE",
+      });
+
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setError(data.error || "Could not delete message.");
+        setDeletingId(null);
+        return;
+      }
+
+      setSuccess("Message deleted.");
+      setDeletingId(null);
+      await loadMessages();
+    } catch {
+      setError("Could not delete message.");
+      setDeletingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-400">
@@ -146,12 +174,12 @@ function MessagesPageContent() {
   const activeMessages = tab === "inbox" ? inbox : outbox;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.18),transparent_25%),linear-gradient(180deg,#060606_0%,#111114_45%,#09090b_100%)] px-6 py-8 text-white">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.18),transparent_25%),linear-gradient(180deg,#060606_0%,#111114_45%,#09090b_100%)] px-4 py-6 text-white sm:px-6 sm:py-8">
       <div className="mx-auto max-w-7xl space-y-6">
         <div className="flex flex-col gap-4 border-b border-zinc-800/80 pb-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-300">Messages</p>
-            <h1 className="mt-2 text-5xl font-black tracking-wide">Inbox</h1>
+            <h1 className="mt-2 text-3xl font-black tracking-wide sm:text-4xl lg:text-5xl">Inbox</h1>
             <p className="mt-2 text-sm text-zinc-400">Send direct messages, track replies, and keep up with invite activity.</p>
           </div>
           <div className="flex items-center gap-3 self-start lg:self-auto">
@@ -162,7 +190,7 @@ function MessagesPageContent() {
           </div>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(280px,380px)_minmax(0,1fr)]">
           <aside className="rounded-[2rem] border border-zinc-800 bg-zinc-950/70 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset]">
             <div className="rounded-[1.5rem] border border-zinc-800 bg-[linear-gradient(180deg,rgba(249,115,22,0.14),rgba(20,20,24,0.95))] p-5">
               <p className="text-sm font-semibold uppercase tracking-[0.25em] text-orange-300">Compose</p>
@@ -223,14 +251,64 @@ function MessagesPageContent() {
                   Sent ({outbox.length})
                 </button>
               </div>
-              <p className="text-sm text-zinc-500">Unread now: {unreadCount}</p>
+              <div className="ml-auto flex items-center gap-3">
+                <p className="text-sm text-zinc-500">Unread now: {unreadCount}</p>
+                <div className="flex w-fit items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setGridColumns(1)}
+                    className={`rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide transition ${gridColumns === 1 ? "bg-orange-500 text-black" : "text-zinc-300 hover:text-white"}`}
+                    title="1 column"
+                  >
+                    <span className="sr-only">1 column</span>
+                    <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current">
+                      <rect x="4" y="4" width="12" height="12" rx="2" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGridColumns(2)}
+                    className={`rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide transition ${gridColumns === 2 ? "bg-orange-500 text-black" : "text-zinc-300 hover:text-white"}`}
+                    title="2 columns"
+                  >
+                    <span className="sr-only">2 columns</span>
+                    <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current">
+                      <rect x="2" y="4" width="7" height="12" rx="1.5" />
+                      <rect x="11" y="4" width="7" height="12" rx="1.5" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGridColumns(4)}
+                    className={`rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide transition ${gridColumns === 4 ? "bg-orange-500 text-black" : "text-zinc-300 hover:text-white"}`}
+                    title="4 columns"
+                  >
+                    <span className="sr-only">4 columns</span>
+                    <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current">
+                      <rect x="2" y="2" width="7" height="7" rx="1.5" />
+                      <rect x="11" y="2" width="7" height="7" rx="1.5" />
+                      <rect x="2" y="11" width="7" height="7" rx="1.5" />
+                      <rect x="11" y="11" width="7" height="7" rx="1.5" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="mt-5 space-y-3">
+            <div
+              className={`mt-5 gap-3 ${
+                gridColumns === 1
+                  ? "space-y-3"
+                  : gridColumns === 2
+                    ? "grid grid-cols-1 gap-3 md:grid-cols-2"
+                    : "grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4"
+              }`}
+            >
               {activeMessages.length > 0 ? (
                 activeMessages.map((message) => {
                   const isInbox = tab === "inbox";
                   const unread = isInbox && !message.readAt;
+                  const isDeleting = deletingId === message.id;
 
                   return (
                     <article
@@ -257,18 +335,28 @@ function MessagesPageContent() {
                         )}
                       </div>
                       <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-zinc-300">{message.body}</p>
-                      {isInbox ? (
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
+                        {isInbox ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRecipientUsername(message.senderUsername);
+                              setTab("sent");
+                            }}
+                            className="rounded-xl border border-zinc-700 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-200 transition hover:bg-zinc-800"
+                          >
+                            Reply
+                          </button>
+                        ) : null}
                         <button
                           type="button"
-                          onClick={() => {
-                            setRecipientUsername(message.senderUsername);
-                            setTab("sent");
-                          }}
-                          className="mt-4 rounded-xl border border-zinc-700 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-200 transition hover:bg-zinc-800"
+                          disabled={isDeleting}
+                          onClick={() => deleteMessage(message.id)}
+                          className="rounded-xl border border-red-500/40 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-red-200 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          Reply
+                          {isDeleting ? "Deleting..." : "Delete"}
                         </button>
-                      ) : null}
+                      </div>
                     </article>
                   );
                 })

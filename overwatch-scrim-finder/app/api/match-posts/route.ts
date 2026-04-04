@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
   const accountByUsername = new Map(
     accounts.map((account) => [account.username.trim().toLowerCase(), account] as const),
   );
+  const preferredTimeByTeamId = new Map(posts.map((post) => [post.teamId, post.preferredTime] as const));
 
   const enrichedPosts = posts.map((post) => {
     const team = teams.find((entry) => entry.id === post.teamId);
@@ -52,6 +53,20 @@ export async function GET(request: NextRequest) {
         ) || null
       : null;
 
+    const acceptedRequestsForTeam = scrimRequests
+      .filter(
+        (scrimRequest) =>
+          scrimRequest.status === "accepted" &&
+          (scrimRequest.requesterTeamId === post.teamId || scrimRequest.targetTeamId === post.teamId),
+      )
+      .sort((leftItem, rightItem) => {
+        const leftTime = new Date(leftItem.respondedAt || leftItem.createdAt).getTime();
+        const rightTime = new Date(rightItem.respondedAt || rightItem.createdAt).getTime();
+        return rightTime - leftTime;
+      });
+
+    const latestAcceptedRequest = acceptedRequestsForTeam[0] || null;
+
     const roster =
       team?.members.map((member) => ({
         username: member.username,
@@ -71,6 +86,21 @@ export async function GET(request: NextRequest) {
       roster,
       incomingRequests,
       outgoingRequestStatus: myRequestToThisPost?.status || null,
+      acceptedMatch: latestAcceptedRequest
+        ? {
+            requestId: latestAcceptedRequest.id,
+            requesterTeamName: latestAcceptedRequest.requesterTeamName,
+            requesterManagerUsername: latestAcceptedRequest.requesterManagerUsername,
+            requesterPreferredTime: preferredTimeByTeamId.get(latestAcceptedRequest.requesterTeamId) || "",
+            targetTeamName: latestAcceptedRequest.targetTeamName,
+            targetManagerUsername: latestAcceptedRequest.targetManagerUsername,
+            targetPreferredTime: preferredTimeByTeamId.get(latestAcceptedRequest.targetTeamId) || "",
+            acceptedAt: latestAcceptedRequest.respondedAt || latestAcceptedRequest.createdAt,
+            scheduledTime: latestAcceptedRequest.matchDetails?.scheduledTime || "",
+            lobby: latestAcceptedRequest.matchDetails?.lobby || "",
+            notes: latestAcceptedRequest.matchDetails?.notes || "",
+          }
+        : null,
     };
   });
 
@@ -118,7 +148,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Preferred time is required." }, { status: 400 });
   }
 
-  const scrimRank = account.gameProfile?.eloRange?.trim() || "";
+  const scrimRank = account.gameProfile?.rank?.trim() || "";
   const region = Array.isArray(account.gameProfile?.region) ? account.gameProfile.region : [];
   if (!scrimRank || region.length === 0) {
     return NextResponse.json(

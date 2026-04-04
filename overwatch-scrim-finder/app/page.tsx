@@ -70,7 +70,7 @@ const MultiSelectField = ({
         <span className="min-w-0 flex-1 truncate whitespace-nowrap">{summaryText}</span>
         <span className="ml-3 text-xs text-zinc-400">▾</span>
       </summary>
-      <div className="absolute left-0 top-full z-20 mt-2 w-full min-w-[13rem] rounded-lg border border-zinc-700 bg-zinc-900 p-2 shadow-xl">
+      <div className="absolute left-0 top-full z-20 mt-2 w-[min(20rem,calc(100vw-2rem))] max-w-full rounded-lg border border-zinc-700 bg-zinc-900 p-2 shadow-xl">
         {showClearButton && (
           <button
             type="button"
@@ -129,7 +129,7 @@ const SingleSelectMenu = ({
         <span className="truncate">{summaryText}</span>
         <span className="ml-3 text-xs text-zinc-400">▾</span>
       </summary>
-      <div className="absolute left-0 top-full z-20 mt-2 w-full min-w-[13rem] rounded-lg border border-zinc-700 bg-zinc-900 p-2 shadow-xl">
+      <div className="absolute left-0 top-full z-20 mt-2 w-[min(20rem,calc(100vw-2rem))] max-w-full rounded-lg border border-zinc-700 bg-zinc-900 p-2 shadow-xl">
         <div className="space-y-1">
           {options.map((option) => (
             <button
@@ -181,6 +181,7 @@ const SEEKING_OPTIONS = [
   { value: "Player", label: "Player" },
   { value: "Manager", label: "Manager" },
   { value: "Coach", label: "Coach" },
+  { value: "team-posts", label: "Team posts" },
 ];
 
 const SCRIM_RANK_OPTIONS = [
@@ -243,6 +244,7 @@ interface Post {
   avatarUrl?: string;
   joinedTeamName?: string;
   leaderRole: string;
+  leaderRoles?: string[];
   mainRole: string[];
   tournaments?: string[];
   members: TeamMember[];
@@ -305,6 +307,13 @@ const formatOwRank = (rank?: string) => {
   return rank.charAt(0).toUpperCase() + rank.slice(1);
 };
 
+const getPostStatuses = (post: Post) => {
+  if (Array.isArray(post.leaderRoles) && post.leaderRoles.length > 0) {
+    return post.leaderRoles;
+  }
+  return [post.leaderRole || "Player"];
+};
+
 export default function ScrimFinderApp() {
   const router = useRouter();
   const { t } = useI18n();
@@ -313,10 +322,10 @@ export default function ScrimFinderApp() {
   const [sortBy, setSortBy] = useState("newest");
   const [regionFilters, setRegionFilters] = useState<string[]>([]);
   const [mainRoleFilters, setMainRoleFilters] = useState<string[]>([]);
-  const [lfpRoleFilters, setLfpRoleFilters] = useState<string[]>([]);
   const [seekingFilters, setSeekingFilters] = useState<string[]>([]);
   const [scrimRankFilter, setScrimRankFilter] = useState("all");
   const [rankFilter, setRankFilter] = useState("all");
+  const [gridColumns, setGridColumns] = useState<1 | 2 | 4>(1);
   const [isPostMenuOpen, setIsPostMenuOpen] = useState(false);
   const [accountName, setAccountName] = useState("");
   const [accountAvatarUrl, setAccountAvatarUrl] = useState("");
@@ -521,19 +530,21 @@ export default function ScrimFinderApp() {
         const nameMatch = post.teamName.toLowerCase().includes(searchTerm.toLowerCase());
         const regionMatch = regionFilters.length === 0 || post.region.some((value) => regionFilters.includes(value));
         const mainRoleMatch = mainRoleFilters.length === 0 || post.mainRole.some((value) => mainRoleFilters.includes(value));
-        const leaderRoleText = post.leaderRole.toLowerCase();
+        const postStatuses = getPostStatuses(post).map((status) => status.toLowerCase());
         const seekingMatch =
           seekingFilters.length === 0 ||
-          seekingFilters.some((value) => leaderRoleText.includes(value.toLowerCase()));
+          seekingFilters.some((value) => {
+            if (value === "team-posts") {
+              return post.postType === "team-lfp";
+            }
+            return postStatuses.includes(value.toLowerCase());
+          });
         const scrimRankMatch =
           scrimRankFilter === "all" || post.eloRange.toLowerCase() === scrimRankFilter.toLowerCase();
         const memberRanks = post.members.map((member) => member.rank.toLowerCase()).join(" ");
         const rankMatch = rankFilter === "all" || memberRanks.includes(rankFilter.toLowerCase());
-        const lfpRoleMatch =
-          lfpRoleFilters.length === 0 ||
-          (post.postType === "team-lfp" && post.lookingForRoles?.some((value) => lfpRoleFilters.includes(value)));
 
-        return nameMatch && regionMatch && mainRoleMatch && seekingMatch && scrimRankMatch && rankMatch && lfpRoleMatch;
+        return nameMatch && regionMatch && mainRoleMatch && seekingMatch && scrimRankMatch && rankMatch;
       })
       .sort((leftPost, rightPost) => {
         if (sortBy === "oldest") {
@@ -555,7 +566,6 @@ export default function ScrimFinderApp() {
     seekingFilters,
     scrimRankFilter,
     rankFilter,
-    lfpRoleFilters,
     sortBy,
   ]);
 
@@ -574,7 +584,15 @@ export default function ScrimFinderApp() {
                   : t("home.cta.playerDescription")}
               </p>
             </div>
-            <div className="relative">
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href="/profiles"
+                className="rounded-xl border border-zinc-700 px-5 py-2 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-800"
+              >
+                Search Profiles
+              </Link>
+
+              <div className="relative">
               <button
                 type="button"
                 onClick={openPostMenu}
@@ -644,6 +662,7 @@ export default function ScrimFinderApp() {
                   </div>
                 </div>
               )}
+              </div>
             </div>
           </div>
 
@@ -658,7 +677,7 @@ export default function ScrimFinderApp() {
                   </span>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-x-4 gap-y-3 px-5 py-4 sm:grid-cols-2 xl:grid-cols-7">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-3 px-5 py-4 sm:grid-cols-2 xl:grid-cols-6">
                 <SingleSelectMenu
                   label={t("home.filters.sort")}
                   options={localizedSortOptions}
@@ -700,17 +719,6 @@ export default function ScrimFinderApp() {
                   selectedCountLabel={(count) => t("common.selectedCount", { count })}
                   className="w-full"
                 />
-                <MultiSelectField
-                  label={t("home.filters.lfpRole")}
-                  options={localizedMainRoleOptions}
-                  selectedValues={lfpRoleFilters}
-                  onToggle={(value) => toggleArrayFilter(lfpRoleFilters, value, setLfpRoleFilters)}
-                  onClear={() => setLfpRoleFilters([])}
-                  allLabel={t("common.all")}
-                  clearLabel={t("common.clearFilters")}
-                  selectedCountLabel={(count) => t("common.selectedCount", { count })}
-                  className="w-full"
-                />
                 <SingleSelectMenu
                   label={t("home.filters.scrimRank")}
                   options={localizedScrimRankOptions}
@@ -729,7 +737,50 @@ export default function ScrimFinderApp() {
                 />
               </div>
             </div>
-            <div className="space-y-4">
+            <div className="flex justify-end">
+              <div className="flex w-fit items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
+                <button
+                  type="button"
+                  onClick={() => setGridColumns(1)}
+                  className={`rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide transition ${gridColumns === 1 ? "bg-orange-500 text-black" : "text-zinc-300 hover:text-white"}`}
+                  title="1 column"
+                >
+                  <span className="sr-only">1 column</span>
+                  <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current">
+                    <rect x="4" y="4" width="12" height="12" rx="2" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGridColumns(2)}
+                  className={`rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide transition ${gridColumns === 2 ? "bg-orange-500 text-black" : "text-zinc-300 hover:text-white"}`}
+                  title="2 columns"
+                >
+                  <span className="sr-only">2 columns</span>
+                  <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current">
+                    <rect x="2" y="4" width="7" height="12" rx="1.5" />
+                    <rect x="11" y="4" width="7" height="12" rx="1.5" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGridColumns(4)}
+                  className={`rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide transition ${gridColumns === 4 ? "bg-orange-500 text-black" : "text-zinc-300 hover:text-white"}`}
+                  title="4 columns"
+                >
+                  <span className="sr-only">4 columns</span>
+                  <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current">
+                    <rect x="2" y="2" width="7" height="7" rx="1.5" />
+                    <rect x="11" y="2" width="7" height="7" rx="1.5" />
+                    <rect x="2" y="11" width="7" height="7" rx="1.5" />
+                    <rect x="11" y="11" width="7" height="7" rx="1.5" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div
+              className={`${gridColumns === 1 ? "space-y-4" : gridColumns === 2 ? "grid grid-cols-1 gap-4 md:grid-cols-2" : "grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"}`}
+            >
               {filteredPosts.length === 0 ? (
                 <p className="text-zinc-500">{t("home.results.empty")}</p>
               ) : (
@@ -755,10 +806,16 @@ export default function ScrimFinderApp() {
                             )}
                             <div>
                               <p className="font-mono text-base font-bold text-white">{post.leader}</p>
-                              <p className="text-xs font-medium text-zinc-400">
-                                <span className="mr-1 text-zinc-600">›</span>
-                                {translateRole(post.leaderRole)}
-                              </p>
+                              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                {getPostStatuses(post).map((status) => (
+                                  <span
+                                    key={`${post.id}-${status}`}
+                                    className="rounded-md border border-zinc-700 bg-zinc-900/80 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-300"
+                                  >
+                                    {translateRole(status)}
+                                  </span>
+                                ))}
+                              </div>
                               {post.joinedTeamName ? (
                                 <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-orange-300">
                                   {t("common.teamWithName", { name: post.joinedTeamName })}

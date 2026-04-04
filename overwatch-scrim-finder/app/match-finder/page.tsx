@@ -31,6 +31,19 @@ interface MatchPost {
     createdAt: string;
   }>;
   outgoingRequestStatus?: "pending" | "accepted" | "declined" | null;
+  acceptedMatch?: {
+    requestId: number;
+    requesterTeamName: string;
+    requesterManagerUsername: string;
+    requesterPreferredTime: string;
+    targetTeamName: string;
+    targetManagerUsername: string;
+    targetPreferredTime: string;
+    acceptedAt: string;
+    scheduledTime?: string;
+    lobby?: string;
+    notes?: string;
+  } | null;
 }
 
 interface SessionAccount {
@@ -46,6 +59,25 @@ interface TeamResponse {
     managerUsername?: string;
   };
 }
+
+interface RequestMatchDetailsDraft {
+  scheduledTime: string;
+  lobby: string;
+  notes: string;
+}
+
+const SCRIM_RANK_FILTER_OPTIONS = [
+  { value: "all", label: "All Ranks" },
+  { value: "3000", label: "3000" },
+  { value: "3500", label: "3500" },
+  { value: "4000", label: "4000" },
+  { value: "4500", label: "4500" },
+  { value: "open", label: "Open" },
+  { value: "adv", label: "Advanced" },
+  { value: "expert", label: "Expert" },
+  { value: "master", label: "Master" },
+  { value: "owcs", label: "OWCS" },
+];
 
 const formatTimestamp = (value: string) => {
   const date = new Date(value);
@@ -81,12 +113,39 @@ export default function MatchFinderPage() {
   const [managedTeamId, setManagedTeamId] = useState<number | null>(null);
   const [preferredTime, setPreferredTime] = useState("");
   const [notes, setNotes] = useState("");
+  const [scrimRankFilter, setScrimRankFilter] = useState("all");
   const [submitting, setSubmitting] = useState(false);
   const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
   const [requestingPostId, setRequestingPostId] = useState<number | null>(null);
+  const [gridColumns, setGridColumns] = useState<1 | 2 | 4>(1);
   const [respondingRequestId, setRespondingRequestId] = useState<number | null>(null);
+  const [requestMatchDetails, setRequestMatchDetails] = useState<Record<number, RequestMatchDetailsDraft>>({});
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+
+  const getRequestDraft = (requestId: number): RequestMatchDetailsDraft => {
+    return (
+      requestMatchDetails[requestId] || {
+        scheduledTime: "",
+        lobby: "",
+        notes: "",
+      }
+    );
+  };
+
+  const setRequestDraftValue = (
+    requestId: number,
+    key: keyof RequestMatchDetailsDraft,
+    value: string,
+  ) => {
+    setRequestMatchDetails((previousDrafts) => ({
+      ...previousDrafts,
+      [requestId]: {
+        ...getRequestDraft(requestId),
+        [key]: value,
+      },
+    }));
+  };
 
   const loadPosts = async () => {
     try {
@@ -160,6 +219,15 @@ export default function MatchFinderPage() {
     }
     return posts.find((post) => post.teamId === managedTeamId) || null;
   }, [posts, managedTeamId]);
+
+  const filteredPosts = useMemo(() => {
+    if (scrimRankFilter === "all") {
+      return posts;
+    }
+
+    const normalizedFilter = scrimRankFilter.trim().toLowerCase();
+    return posts.filter((post) => post.scrimRank.trim().toLowerCase() === normalizedFilter);
+  }, [posts, scrimRankFilter]);
 
   const handleLogout = async () => {
     try {
@@ -262,13 +330,30 @@ export default function MatchFinderPage() {
     setError("");
     setSuccessMessage("");
 
+    const draft = getRequestDraft(requestId);
+    if (action === "accept" && !draft.scheduledTime.trim()) {
+      setError("Add a scheduled time before accepting the scrim request.");
+      setRespondingRequestId(null);
+      return;
+    }
+
     try {
       const response = await fetch(`/api/scrim-requests/${requestId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({
+          action,
+          matchDetails:
+            action === "accept"
+              ? {
+                  scheduledTime: draft.scheduledTime,
+                  lobby: draft.lobby,
+                  notes: draft.notes,
+                }
+              : undefined,
+        }),
       });
 
       const payload = (await response.json()) as { error?: string };
@@ -278,6 +363,13 @@ export default function MatchFinderPage() {
       }
 
       setSuccessMessage(action === "accept" ? "Scrim request accepted." : "Scrim request declined.");
+      if (action === "accept") {
+        setRequestMatchDetails((previousDrafts) => {
+          const nextDrafts = { ...previousDrafts };
+          delete nextDrafts[requestId];
+          return nextDrafts;
+        });
+      }
       await loadPosts();
     } catch {
       setError("Failed to respond to scrim request.");
@@ -325,12 +417,68 @@ export default function MatchFinderPage() {
         </div>
 
         <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">Filter</p>
+            <select
+              value={scrimRankFilter}
+              onChange={(event) => setScrimRankFilter(event.target.value)}
+              className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm font-semibold text-white outline-none transition focus:border-orange-500/60"
+            >
+              {SCRIM_RANK_FILTER_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="ml-auto flex w-fit items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
+            <button
+              type="button"
+              onClick={() => setGridColumns(1)}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide transition ${gridColumns === 1 ? "bg-orange-500 text-black" : "text-zinc-300 hover:text-white"}`}
+              title="1 column"
+            >
+              <span className="sr-only">1 column</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current">
+                <rect x="4" y="4" width="12" height="12" rx="2" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => setGridColumns(2)}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide transition ${gridColumns === 2 ? "bg-orange-500 text-black" : "text-zinc-300 hover:text-white"}`}
+              title="2 columns"
+            >
+              <span className="sr-only">2 columns</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current">
+                <rect x="2" y="4" width="7" height="12" rx="1.5" />
+                <rect x="11" y="4" width="7" height="12" rx="1.5" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => setGridColumns(4)}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide transition ${gridColumns === 4 ? "bg-orange-500 text-black" : "text-zinc-300 hover:text-white"}`}
+              title="4 columns"
+            >
+              <span className="sr-only">4 columns</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 fill-current">
+                <rect x="2" y="2" width="7" height="7" rx="1.5" />
+                <rect x="11" y="2" width="7" height="7" rx="1.5" />
+                <rect x="2" y="11" width="7" height="7" rx="1.5" />
+                <rect x="11" y="11" width="7" height="7" rx="1.5" />
+              </svg>
+            </button>
+          </div>
+
           {loading ? (
             <p className="text-sm text-zinc-500">Loading match posts...</p>
-          ) : posts.length === 0 ? (
+          ) : filteredPosts.length === 0 ? (
             <p className="text-sm text-zinc-500">No active match requests right now.</p>
           ) : (
-            posts.map((post) => {
+            <div className={`${gridColumns === 1 ? "space-y-3" : gridColumns === 2 ? "grid grid-cols-1 gap-3 md:grid-cols-2" : "grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4"}`}>
+            {filteredPosts.map((post) => {
               const rosterPlayers = (post.roster || [])
                 .filter((member) => {
                   const normalizedRole = member.role.trim().toLowerCase();
@@ -423,32 +571,100 @@ export default function MatchFinderPage() {
                   <div className="mt-3 rounded-lg border border-zinc-700/60 bg-zinc-950/60 px-3 py-2">
                     <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Incoming Scrim Requests</p>
                     <div className="mt-2 space-y-2">
-                      {post.incomingRequests.map((scrimRequest) => (
-                        <div key={scrimRequest.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-700/70 bg-zinc-900/70 px-2.5 py-2">
-                          <p className="text-xs text-zinc-300">
-                            <span className="font-semibold text-zinc-100">{scrimRequest.requesterTeamName}</span> ({scrimRequest.requesterManagerUsername})
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleRespondToRequest(scrimRequest.id, "accept")}
-                              disabled={respondingRequestId === scrimRequest.id}
-                              className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-200 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              {respondingRequestId === scrimRequest.id ? "Working..." : "Accept"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleRespondToRequest(scrimRequest.id, "decline")}
-                              disabled={respondingRequestId === scrimRequest.id}
-                              className="rounded-lg border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-red-200 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              {respondingRequestId === scrimRequest.id ? "Working..." : "Decline"}
-                            </button>
+                      {post.incomingRequests.map((scrimRequest) => {
+                        const draft = getRequestDraft(scrimRequest.id);
+
+                        return (
+                          <div key={scrimRequest.id} className="rounded-lg border border-zinc-700/70 bg-zinc-900/70 px-2.5 py-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-xs text-zinc-300">
+                                <span className="font-semibold text-zinc-100">{scrimRequest.requesterTeamName}</span> ({scrimRequest.requesterManagerUsername})
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRespondToRequest(scrimRequest.id, "accept")}
+                                  disabled={respondingRequestId === scrimRequest.id}
+                                  className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-200 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {respondingRequestId === scrimRequest.id ? "Working..." : "Accept"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRespondToRequest(scrimRequest.id, "decline")}
+                                  disabled={respondingRequestId === scrimRequest.id}
+                                  className="rounded-lg border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-red-200 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {respondingRequestId === scrimRequest.id ? "Working..." : "Decline"}
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                              <input
+                                value={draft.scheduledTime}
+                                onChange={(event) => setRequestDraftValue(scrimRequest.id, "scheduledTime", event.target.value)}
+                                placeholder="Set match time (required to accept)"
+                                className="rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-2 text-xs text-white outline-none transition focus:border-orange-500/60"
+                              />
+                              <input
+                                value={draft.lobby}
+                                onChange={(event) => setRequestDraftValue(scrimRequest.id, "lobby", event.target.value)}
+                                placeholder="Lobby info / server"
+                                className="rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-2 text-xs text-white outline-none transition focus:border-orange-500/60"
+                              />
+                            </div>
+                            <textarea
+                              value={draft.notes}
+                              onChange={(event) => setRequestDraftValue(scrimRequest.id, "notes", event.target.value)}
+                              placeholder="Extra details (maps, FT rules, etc.)"
+                              rows={2}
+                              className="mt-2 w-full rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-2 text-xs text-white outline-none transition focus:border-orange-500/60"
+                            />
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
+                  </div>
+                ) : null}
+
+                {post.acceptedMatch ? (
+                  <div className="mt-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-300">Scrim Match Details</p>
+                    <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <div className="rounded-md border border-emerald-500/20 bg-black/25 px-2.5 py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-200/80">Teams</p>
+                        <p className="mt-1 text-xs text-emerald-50">{post.acceptedMatch.targetTeamName} vs {post.acceptedMatch.requesterTeamName}</p>
+                      </div>
+                      <div className="rounded-md border border-emerald-500/20 bg-black/25 px-2.5 py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-200/80">Scheduled Time</p>
+                        <p className="mt-1 text-xs text-emerald-50">{post.acceptedMatch.scheduledTime || "Not set"}</p>
+                      </div>
+                      <div className="rounded-md border border-emerald-500/20 bg-black/25 px-2.5 py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-200/80">Manager Pair</p>
+                        <p className="mt-1 text-xs text-emerald-50">{post.acceptedMatch.targetManagerUsername} and {post.acceptedMatch.requesterManagerUsername}</p>
+                      </div>
+                      <div className="rounded-md border border-emerald-500/20 bg-black/25 px-2.5 py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-200/80">Accepted</p>
+                        <p className="mt-1 text-xs text-emerald-50">{formatTimestamp(post.acceptedMatch.acceptedAt)}</p>
+                      </div>
+                    </div>
+                    <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <div className="rounded-md border border-emerald-500/20 bg-black/25 px-2.5 py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-200/80">Requester Preferred Time</p>
+                        <p className="mt-1 text-xs text-emerald-50">{post.acceptedMatch.requesterPreferredTime || "Not set"}</p>
+                      </div>
+                      <div className="rounded-md border border-emerald-500/20 bg-black/25 px-2.5 py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-200/80">Target Preferred Time</p>
+                        <p className="mt-1 text-xs text-emerald-50">{post.acceptedMatch.targetPreferredTime || "Not set"}</p>
+                      </div>
+                    </div>
+                    {post.acceptedMatch.lobby ? (
+                      <p className="mt-2 text-xs text-emerald-100"><span className="font-semibold text-emerald-50">Lobby:</span> {post.acceptedMatch.lobby}</p>
+                    ) : null}
+                    {post.acceptedMatch.notes ? (
+                      <p className="mt-1 text-xs text-emerald-100"><span className="font-semibold text-emerald-50">Notes:</span> {post.acceptedMatch.notes}</p>
+                    ) : null}
                   </div>
                 ) : null}
 
@@ -460,11 +676,11 @@ export default function MatchFinderPage() {
                     </span>
                   </div>
                   {rosterPlayers.length > 0 ? (
-                    <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                    <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                       {rosterPlayers.map((member) => (
                         <div
                           key={`${post.id}-${member.username}-${member.role}`}
-                          className="h-[124px] rounded-lg border border-zinc-700/70 bg-[linear-gradient(180deg,rgba(39,39,42,0.75),rgba(24,24,27,0.9))] px-2.5 py-2 text-xs shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset]"
+                          className="min-h-[124px] rounded-lg border border-zinc-700/70 bg-[linear-gradient(180deg,rgba(39,39,42,0.75),rgba(24,24,27,0.9))] px-2.5 py-2 text-xs shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset]"
                         >
                           <div className="flex items-center gap-2">
                               {member.avatarUrl ? (
@@ -495,8 +711,8 @@ export default function MatchFinderPage() {
                 </div>
               </div>
               );
-            })
-          )}
+            })            }
+            </div>          )}
         </div>
       </div>
     </div>

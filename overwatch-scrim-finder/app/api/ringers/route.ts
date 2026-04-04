@@ -5,7 +5,6 @@ import { createRingerPost, readRingers } from "@/lib/ringers-store";
 import { resolveTimeZoneFromCountryCode } from "@/lib/timezones";
 
 interface IncomingRingerPayload {
-  durationHours?: unknown;
   availableFrom?: unknown;
   availableUntil?: unknown;
   preferredTimeZone?: unknown;
@@ -23,11 +22,7 @@ const normalizeMainRoles = (roles: string[]) => {
   return roles.map((entry) => mapRole(entry.trim())).filter((entry) => entry.length > 0);
 };
 
-const sanitizeDuration = (value: unknown): 12 | 24 | null => {
-  if (value === 12 || value === "12") return 12;
-  if (value === 24 || value === "24") return 24;
-  return null;
-};
+const isQuarterHourTime = (value: string) => /^([01]\d|2[0-3]):(00|15|30|45)$/.test(value);
 
 export async function GET() {
   const ringers = await readRingers();
@@ -45,8 +40,8 @@ export async function POST(request: NextRequest) {
   }
 
   const account = getPosterAccountFromRequest(request);
-  const scrimRank = account?.gameProfile?.eloRange?.trim() || "";
-  const owRank = account?.gameProfile?.rank?.trim() || "";
+  const scrimRank = account?.gameProfile?.rank?.trim() || "";
+  const owRank = account?.gameProfile?.eloRange?.trim() || "";
   const mainRole = normalizeMainRoles(Array.isArray(account?.gameProfile?.mainRole) ? account.gameProfile.mainRole : []);
 
   if (!scrimRank || !owRank || mainRole.length === 0) {
@@ -63,15 +58,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const durationHours = sanitizeDuration(payload.durationHours);
-  if (!durationHours) {
-    return NextResponse.json({ error: "Duration must be 12 or 24 hours." }, { status: 400 });
-  }
-
   const availableFrom = typeof payload.availableFrom === "string" ? payload.availableFrom.trim() : "";
   const availableUntil = typeof payload.availableUntil === "string" ? payload.availableUntil.trim() : "";
-  const isValidTime = (value: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
-  if (!isValidTime(availableFrom) || !isValidTime(availableUntil)) {
+  if (!isQuarterHourTime(availableFrom) || !isQuarterHourTime(availableUntil)) {
     return NextResponse.json({ error: "Please pick a valid availability time window." }, { status: 400 });
   }
   if (availableFrom === availableUntil) {
@@ -80,7 +69,7 @@ export async function POST(request: NextRequest) {
 
   const accountCountry = typeof account?.accountProfile?.country === "string" ? account.accountProfile.country : "";
   const payloadTimeZone = typeof payload.preferredTimeZone === "string" ? payload.preferredTimeZone.trim().slice(0, 64) : "";
-  const preferredTimeZone = resolveTimeZoneFromCountryCode(accountCountry) || payloadTimeZone || "UTC";
+  const preferredTimeZone = payloadTimeZone || resolveTimeZoneFromCountryCode(accountCountry) || "UTC";
 
   const ringers = await readRingers();
   const hasExisting = ringers.some((ringer) => ringer.ownerUsername.trim().toLowerCase() === username.toLowerCase());
@@ -97,7 +86,6 @@ export async function POST(request: NextRequest) {
     availableFrom,
     availableUntil,
     preferredTimeZone,
-    durationHours,
   });
 
   return NextResponse.json(created, { status: 201 });

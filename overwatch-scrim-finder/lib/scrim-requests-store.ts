@@ -3,6 +3,12 @@ import path from "path";
 
 export type ScrimRequestStatus = "pending" | "accepted" | "declined";
 
+export interface ScrimMatchDetails {
+  scheduledTime: string;
+  lobby?: string;
+  notes?: string;
+}
+
 export interface StoredScrimRequest {
   id: number;
   requesterManagerUsername: string;
@@ -14,6 +20,7 @@ export interface StoredScrimRequest {
   status: ScrimRequestStatus;
   createdAt: string;
   respondedAt?: string;
+  matchDetails?: ScrimMatchDetails;
 }
 
 const dataDirectory = path.join(process.cwd(), "data");
@@ -21,6 +28,28 @@ const requestsFilePath = path.join(dataDirectory, "scrim-requests.json");
 
 const normalizeUsername = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 const normalizeTeamName = (value: unknown) => (typeof value === "string" ? value.trim().slice(0, 64) : "");
+const normalizeShortText = (value: unknown, maxLength: number) => (typeof value === "string" ? value.trim().slice(0, maxLength) : "");
+
+const sanitizeMatchDetails = (value: unknown): ScrimMatchDetails | undefined => {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const candidate = value as Partial<ScrimMatchDetails>;
+  const scheduledTime = normalizeShortText(candidate.scheduledTime, 120);
+  if (!scheduledTime) {
+    return undefined;
+  }
+
+  const lobby = normalizeShortText(candidate.lobby, 120);
+  const notes = normalizeShortText(candidate.notes, 300);
+
+  return {
+    scheduledTime,
+    lobby: lobby || undefined,
+    notes: notes || undefined,
+  };
+};
 
 const ensureDataFile = async () => {
   await mkdir(dataDirectory, { recursive: true });
@@ -70,6 +99,7 @@ const sanitizeScrimRequest = (value: unknown): StoredScrimRequest | null => {
     status,
     createdAt: candidate.createdAt,
     respondedAt: typeof candidate.respondedAt === "string" ? candidate.respondedAt : undefined,
+    matchDetails: sanitizeMatchDetails(candidate.matchDetails),
   };
 };
 
@@ -157,6 +187,7 @@ export const respondToScrimRequest = async (
   requestId: number,
   targetManagerUsername: string,
   action: "accept" | "decline",
+  matchDetails?: ScrimMatchDetails,
 ): Promise<StoredScrimRequest | null> => {
   if (!Number.isFinite(requestId)) {
     return null;
@@ -186,6 +217,7 @@ export const respondToScrimRequest = async (
     ...current,
     status: action === "accept" ? "accepted" : "declined",
     respondedAt: new Date().toISOString(),
+    matchDetails: action === "accept" ? sanitizeMatchDetails(matchDetails) : undefined,
   };
 
   const nextRequests = [...requests];

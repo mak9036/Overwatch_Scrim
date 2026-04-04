@@ -1,7 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import CookieConsentBanner from "@/components/cookie-consent-banner";
 import SiteHeader from "@/components/site-header";
 import SiteSidebar from "@/components/site-sidebar";
@@ -11,10 +12,44 @@ const DISCORD_INVITE_URL = "https://discord.gg/";
 const TWITTER_URL = "https://x.com/LFFfinder";
 
 export default function AppChrome({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const { t } = useI18n();
+  const lastRefreshAt = useRef(0);
+
+  useEffect(() => {
+    const refreshApp = () => {
+      const now = Date.now();
+      if (now - lastRefreshAt.current < 500) {
+        return;
+      }
+
+      lastRefreshAt.current = now;
+      router.refresh();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshApp();
+      }
+    };
+
+    const handleFocus = () => {
+      if (document.visibilityState === "visible") {
+        refreshApp();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [router]);
 
   return (
-    <>
+    <div>
       <SiteHeader />
       <div className="flex flex-1 flex-col lg:flex-row">
         <SiteSidebar />
@@ -66,6 +101,6 @@ export default function AppChrome({ children }: { children: ReactNode }) {
           </div>
         </div>
       </footer>
-    </>
+    </div>
   );
 }

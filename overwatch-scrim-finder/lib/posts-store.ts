@@ -19,6 +19,7 @@ export interface StoredPost {
   ownerUsername?: string;
   avatarUrl?: string;
   leaderRole: string;
+  leaderRoles?: string[];
   mainRole: string[];
   tournaments?: string[];
   members: StoredTeamMember[];
@@ -30,6 +31,7 @@ export interface StoredPost {
 
 const TOURNAMENT_OPTIONS = ["FSEL", "SEL", "FIL"] as const;
 const LFP_ROLE_OPTIONS = ["Tank", "FPDS", "HS", "FS", "MS"] as const;
+const LEADER_STATUS_OPTIONS = ["Player", "Manager", "Coach", "Team"] as const;
 
 const sanitizeTournaments = (value: unknown): string[] => {
   if (!Array.isArray(value)) {
@@ -67,6 +69,21 @@ const ensureArrayOfStrings = (value: unknown): string[] => {
     return [];
   }
   return value.filter((entry) => typeof entry === "string");
+};
+
+const sanitizeLeaderStatuses = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      value
+        .filter((entry): entry is string => typeof entry === "string")
+        .map((entry) => entry.trim())
+        .filter((entry) => LEADER_STATUS_OPTIONS.includes(entry as (typeof LEADER_STATUS_OPTIONS)[number])),
+    ),
+  ).slice(0, 4);
 };
 
 const normalizeServerAssetUrl = (value: unknown): string | undefined => {
@@ -108,6 +125,9 @@ const sanitizePost = (value: unknown): StoredPost | null => {
     return null;
   }
 
+  const sanitizedLeaderRole = typeof candidate.leaderRole === "string" ? candidate.leaderRole : "Player";
+  const sanitizedLeaderRoles = sanitizeLeaderStatuses(candidate.leaderRoles);
+
   return {
     teamName: candidate.teamName,
     postType: candidate.postType === "team-lfp" ? "team-lfp" : "account",
@@ -121,7 +141,8 @@ const sanitizePost = (value: unknown): StoredPost | null => {
         ? candidate.ownerUsername.trim()
         : candidate.leader,
     avatarUrl: normalizeServerAssetUrl(candidate.avatarUrl),
-    leaderRole: typeof candidate.leaderRole === "string" ? candidate.leaderRole : "Player",
+    leaderRole: sanitizedLeaderRole,
+    leaderRoles: sanitizedLeaderRoles.length > 0 ? sanitizedLeaderRoles : [sanitizedLeaderRole],
     mainRole: ensureArrayOfStrings(candidate.mainRole),
     tournaments: sanitizeTournaments(candidate.tournaments),
     members: Array.isArray(candidate.members)

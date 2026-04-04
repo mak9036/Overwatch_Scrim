@@ -120,7 +120,7 @@ export default function SiteHeader({ active, accountName, accountAvatarUrl, onLo
           <h1 className="text-lg font-bold text-orange-500 sm:text-2xl">{t("home.brand")}</h1>
         </div>
 
-        <div className="flex items-center gap-4 overflow-x-auto pb-1 sm:gap-6">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
         {activeSection === "home" ? (
           <button className={navClass(true)}>{t("home.nav.home")}</button>
         ) : (
@@ -128,14 +128,14 @@ export default function SiteHeader({ active, accountName, accountAvatarUrl, onLo
             {t("home.nav.home")}
           </Link>
         )}
-        <Link href="/teams" className={navClass(activeSection === "teams")}>
-          {t("home.nav.teams")}
+        <Link href="/match-finder" className={navClass(activeSection === "match-finder")}>
+          {t("home.nav.matchFinder")}
         </Link>
         <Link href="/ringer" className={navClass(activeSection === "ringer")}>
           {t("home.nav.ringer")}
         </Link>
-        <Link href="/match-finder" className={navClass(activeSection === "match-finder")}>
-          {t("home.nav.matchFinder")}
+        <Link href="/teams" className={navClass(activeSection === "teams")}>
+          {t("home.nav.teams")}
         </Link>
         <Link href="/blogs" className={navClass(activeSection === "blogs")}>
           BLOGS

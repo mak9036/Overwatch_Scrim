@@ -137,7 +137,7 @@ export default function NotificationCenter() {
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-full z-50 mt-3 w-[22rem] rounded-2xl border border-zinc-800 bg-zinc-950/95 p-4 shadow-2xl backdrop-blur">
+        <div className="absolute right-0 top-full z-50 mt-3 w-[min(22rem,calc(100vw-1.25rem))] rounded-2xl border border-zinc-800 bg-zinc-950/95 p-4 shadow-2xl backdrop-blur">
           <div className="flex items-start justify-between gap-3 border-b border-zinc-800 pb-3">
             <div>
               <p className="text-sm font-semibold text-white">Notifications</p>

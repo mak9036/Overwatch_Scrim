@@ -1,6 +1,8 @@
 import * as ct from "countries-and-timezones";
 import moment from "moment-timezone";
 
+const TIME_VALUE_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
 export const resolveTimeZoneFromCountryCode = (countryCode: string) => {
   const normalizedCode = countryCode.trim().toUpperCase();
   if (!/^[A-Z]{2}$/.test(normalizedCode)) {
@@ -43,7 +45,7 @@ export const convertTimeBetweenTimeZones = (
   toTimeZone: string,
 ) => {
   const normalizedTime = timeHHmm.trim();
-  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(normalizedTime)) {
+  if (!TIME_VALUE_PATTERN.test(normalizedTime)) {
     return normalizedTime;
   }
 
@@ -61,5 +63,39 @@ export const convertTimeBetweenTimeZones = (
       .format("HH:mm");
   } catch {
     return normalizedTime;
+  }
+};
+
+export const formatTimeForDisplay = (
+  timeHHmm: string,
+  options?: {
+    timeZone?: string;
+    locale?: string | string[];
+  },
+) => {
+  const normalizedTime = timeHHmm.trim();
+  const match = normalizedTime.match(TIME_VALUE_PATTERN);
+  if (!match) {
+    return normalizedTime;
+  }
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const timeZone = options?.timeZone?.trim();
+
+  try {
+    const date = new Date(Date.UTC(2000, 0, 1, hours, minutes));
+    const formatter = new Intl.DateTimeFormat(options?.locale, {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      ...(timeZone ? { timeZone } : {}),
+    });
+
+    return formatter.format(date);
+  } catch {
+    const period = hours >= 12 ? "PM" : "AM";
+    const hours12 = hours % 12 || 12;
+    return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
   }
 };
