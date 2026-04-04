@@ -145,7 +145,7 @@ const messages = {
       selectedCount: "{count} selected / تم الاختيار {count}",
       guest: "Guest / زائر",
       cancel: "Cancel / إلغاء",
-      open: "OPEN / فتح",
+      open: "OPEN / فتح",                                     
       profile: "Profile / البروفايل",
       createAccount: "Create Account / إنشاء حساب",
       login: "Login / تسجيل دخول",

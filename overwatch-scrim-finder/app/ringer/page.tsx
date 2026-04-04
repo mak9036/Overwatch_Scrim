@@ -36,20 +36,27 @@ const HOUR_OPTIONS = Array.from({ length: 12 }, (_, index) => {
 
 const MINUTE_OPTIONS = ["00", "15", "30", "45"];
 const PERIOD_OPTIONS = ["AM", "PM"] as const;
+type Meridiem = (typeof PERIOD_OPTIONS)[number];
 
-const parseTimeValue = (value: string) => {
+type TimeParts = {
+  hour: string;
+  minute: string;
+  period: Meridiem;
+};
+
+const parseTimeValue = (value: string): TimeParts => {
   if (!/^([01]\d|2[0-3]):(00|15|30|45)$/.test(value)) {
-    return { hour: "", minute: "00", period: "AM" as const };
+    return { hour: "", minute: "00", period: "AM" };
   }
 
   const [hourText, minute] = value.split(":");
   const hours24 = Number(hourText);
-  const period = hours24 >= 12 ? "PM" : "AM";
+  const period: Meridiem = hours24 >= 12 ? "PM" : "AM";
   const hour = String(hours24 % 12 || 12);
   return { hour, minute, period };
 };
 
-const buildTimeValue = (hour: string, minute: string, period: "AM" | "PM") => {
+const buildTimeValue = (hour: string, minute: string, period: Meridiem) => {
   if (!hour) {
     return "";
   }
