@@ -52,10 +52,10 @@ const messages = {
       terms: "Terms",
       privacy: "Privacy",
       cookies: "Cookies",
-      copyright: "© {year} Overwatch Scrim Finder",
+      copyright: "© {year} LFFinder",
     },
     home: {
-      brand: "Necoss Slave House",
+      brand: "LFFinder",
       nav: {
         home: "HOME",
         teams: "TEAMS",
@@ -164,10 +164,10 @@ const messages = {
       terms: "Terms / الشروط",
       privacy: "Privacy / الخصوصية",
       cookies: "Cookies / الكوكيز",
-      copyright: "© {year} Overwatch Scrim Finder / موقع سكرم أوفرواتش",
+      copyright: "© {year} LFFinder",
     },
     home: {
-      brand: "Necoss Slave House",
+      brand: "LFFinder",
       nav: {
         home: "Home / الرئيسية",
         teams: "Teams / الفرق",
@@ -276,10 +276,10 @@ const messages = {
       terms: "이용약관",
       privacy: "개인정보처리방침",
       cookies: "쿠키",
-      copyright: "© {year} 오버워치 스크림 파인더",
+      copyright: "© {year} LFFinder",
     },
     home: {
-      brand: "Necoss Slave House",
+      brand: "LFFinder",
       nav: {
         home: "홈",
         teams: "팀",
@@ -388,10 +388,10 @@ const messages = {
       terms: "Nutzungsbedingungen",
       privacy: "Datenschutz",
       cookies: "Cookies",
-      copyright: "© {year} Overwatch Scrim Finder",
+      copyright: "© {year} LFFinder",
     },
     home: {
-      brand: "Necoss Slave House",
+      brand: "LFFinder",
       nav: {
         home: "START",
         teams: "TEAMS",
