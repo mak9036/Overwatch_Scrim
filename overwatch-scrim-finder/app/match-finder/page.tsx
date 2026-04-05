@@ -117,7 +117,7 @@ export default function MatchFinderPage() {
   const [submitting, setSubmitting] = useState(false);
   const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
   const [requestingPostId, setRequestingPostId] = useState<number | null>(null);
-  const [gridColumns, setGridColumns] = useState<1 | 2 | 4>(1);
+  const [gridColumns, setGridColumns] = useState<1 | 2 | 4>(4);
   const [respondingRequestId, setRespondingRequestId] = useState<number | null>(null);
   const [requestMatchDetails, setRequestMatchDetails] = useState<Record<number, RequestMatchDetailsDraft>>({});
   const [error, setError] = useState("");

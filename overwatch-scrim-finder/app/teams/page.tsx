@@ -224,7 +224,7 @@ export default function TeamsPage() {
   const [sortBy, setSortBy] = useState("newest");
   const [accountName, setAccountName] = useState("");
   const [accountAvatarUrl, setAccountAvatarUrl] = useState("");
-  const [gridColumns, setGridColumns] = useState<1 | 2 | 4>(1);
+  const [gridColumns, setGridColumns] = useState<1 | 2 | 4>(4);
 
   useEffect(() => {
     const loadTeams = async () => {

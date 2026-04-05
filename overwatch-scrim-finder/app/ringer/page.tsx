@@ -159,7 +159,7 @@ export default function RingerPage() {
   const [submitting, setSubmitting] = useState(false);
   const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
-  const [gridColumns, setGridColumns] = useState<1 | 2 | 4>(1);
+  const [gridColumns, setGridColumns] = useState<1 | 2 | 4>(4);
 
   const load = async () => {
     try {

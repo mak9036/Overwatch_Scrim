@@ -325,7 +325,7 @@ export default function ScrimFinderApp() {
   const [seekingFilters, setSeekingFilters] = useState<string[]>([]);
   const [scrimRankFilter, setScrimRankFilter] = useState("all");
   const [rankFilter, setRankFilter] = useState("all");
-  const [gridColumns, setGridColumns] = useState<1 | 2 | 4>(1);
+  const [gridColumns, setGridColumns] = useState<1 | 2 | 4>(4);
   const [isPostMenuOpen, setIsPostMenuOpen] = useState(false);
   const [accountName, setAccountName] = useState("");
   const [accountAvatarUrl, setAccountAvatarUrl] = useState("");

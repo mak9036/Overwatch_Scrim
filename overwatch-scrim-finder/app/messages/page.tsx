@@ -44,7 +44,7 @@ function MessagesPageContent() {
   const [success, setSuccess] = useState("");
   const [sending, setSending] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [gridColumns, setGridColumns] = useState<1 | 2 | 4>(1);
+  const [gridColumns, setGridColumns] = useState<1 | 2 | 4>(4);
   const defaultRecipient = searchParams.get("to") || "";
 
   const loadMessages = async () => {
