@@ -332,6 +332,7 @@ export default function ScrimFinderApp() {
   const [accountLeaderRole, setAccountLeaderRole] = useState("");
   const [checkingAccount, setCheckingAccount] = useState(false);
   const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
+  const compactCards = gridColumns === 4;
 
   const isManager = accountLeaderRole === "Manager";
 
@@ -790,34 +791,34 @@ export default function ScrimFinderApp() {
                     className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 transition hover:border-orange-500/40"
                   >
                     <div className="flex">
-                      <div className="flex-1 px-5 py-4 space-y-4">
-                        <div className="-mx-5 -mt-4 flex items-start justify-between gap-4 border-b border-zinc-800/80 bg-gradient-to-r from-orange-500/10 via-zinc-900 to-zinc-900 px-5 pb-4 pt-4">
+                      <div className={`flex-1 space-y-4 ${compactCards ? "px-4 py-3" : "px-5 py-4"}`}>
+                        <div className={`flex items-start justify-between gap-4 border-b border-zinc-800/80 bg-gradient-to-r from-orange-500/10 via-zinc-900 to-zinc-900 ${compactCards ? "-mx-4 -mt-3 px-4 pb-3 pt-3" : "-mx-5 -mt-4 px-5 pb-4 pt-4"}`}>
                           <div className="flex items-center gap-3">
                             {post.avatarUrl ? (
                               <img
                                 src={post.avatarUrl}
                                 alt={`${post.leader} avatar`}
-                                className="h-14 w-14 shrink-0 rounded-full border border-zinc-700 object-cover"
+                                className={`${compactCards ? "h-12 w-12" : "h-14 w-14"} shrink-0 rounded-full border border-zinc-700 object-cover`}
                               />
                             ) : (
-                              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-orange-500/20 text-xl">
+                              <div className={`flex shrink-0 items-center justify-center rounded-full bg-orange-500/20 ${compactCards ? "h-12 w-12 text-lg" : "h-14 w-14 text-xl"}`}>
                                 👤
                               </div>
                             )}
                             <div>
-                              <p className="font-mono text-base font-bold text-white">{post.leader}</p>
+                              <p className={`font-mono font-bold text-white ${compactCards ? "text-sm" : "text-base"}`}>{post.leader}</p>
                               <div className="mt-1 flex flex-wrap items-center gap-1.5">
                                 {getPostStatuses(post).map((status) => (
                                   <span
                                     key={`${post.id}-${status}`}
-                                    className="rounded-md border border-zinc-700 bg-zinc-900/80 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-300"
+                                    className={`rounded-md border border-zinc-700 bg-zinc-900/80 px-2 py-0.5 font-semibold uppercase tracking-[0.12em] text-zinc-300 ${compactCards ? "text-[10px]" : "text-[11px]"}`}
                                   >
                                     {translateRole(status)}
                                   </span>
                                 ))}
                               </div>
                               {post.joinedTeamName ? (
-                                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-orange-300">
+                                <p className={`mt-1 font-semibold uppercase tracking-[0.16em] text-orange-300 ${compactCards ? "text-[10px]" : "text-xs"}`}>
                                   {t("common.teamWithName", { name: post.joinedTeamName })}
                                 </p>
                               ) : null}
@@ -825,7 +826,7 @@ export default function ScrimFinderApp() {
                           </div>
 
                           <div className="flex flex-col items-end gap-2">
-                            <span className="shrink-0 rounded-md border border-orange-500/40 bg-black/40 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-orange-300">
+                            <span className={`shrink-0 rounded-md border border-orange-500/40 bg-black/40 px-3 py-1 font-bold uppercase tracking-[0.2em] text-orange-300 ${compactCards ? "text-[10px]" : "text-[11px]"}`}>
                               {post.region.map((region) => translateRegion(region)).join(" • ")}
                             </span>
                             {accountName && (post.ownerUsername || post.leader) === accountName ? (
@@ -833,7 +834,7 @@ export default function ScrimFinderApp() {
                                 type="button"
                                 onClick={() => handleDeletePost(post.id)}
                                 disabled={deletingPostId === post.id}
-                                className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-red-200 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                className={`rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-1.5 font-semibold uppercase tracking-[0.16em] text-red-200 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60 ${compactCards ? "text-[10px]" : "text-xs"}`}
                               >
                                 {deletingPostId === post.id ? t("home.card.deleting") : t("home.card.deletePost")}
                               </button>
@@ -882,7 +883,7 @@ export default function ScrimFinderApp() {
                             <div className="space-y-2">
                               {post.members.length > 0 ? (
                                 sortRosterMembers(post.members).map((member) => (
-                                  <div key={member.name} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/70 px-3 py-2 text-sm">
+                                  <div key={member.name} className={`flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/70 px-3 py-2 ${compactCards ? "text-xs" : "text-sm"}`}>
                                     <span className="font-semibold text-zinc-100">{member.name}</span>
                                     <div className="text-right">
                                       <p className="text-zinc-300">{translateRole(getRosterCategoryLabel(member.role, member.mainRole))}</p>
@@ -901,7 +902,7 @@ export default function ScrimFinderApp() {
 
                             <div className="rounded-lg border border-zinc-800 bg-zinc-900/70 px-3 py-2">
                               <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">{t("home.card.rolesNeeded")}</p>
-                              <p className="mt-1 text-sm text-zinc-200">
+                              <p className={`mt-1 text-zinc-200 break-words ${compactCards ? "text-xs" : "text-sm"}`}>
                                 {post.lookingForRoles && post.lookingForRoles.length > 0
                                   ? formatLocalizedRoleList(post.lookingForRoles)
                                   : t("home.card.noRolesSelected")}
@@ -910,7 +911,7 @@ export default function ScrimFinderApp() {
 
                             <div className="rounded-lg border border-zinc-800 bg-zinc-900/70 px-3 py-2">
                               <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">{t("home.card.aboutUs")}</p>
-                              <p className="mt-1 text-sm text-zinc-200">{post.lookingFor || t("home.card.noDetailsProvided")}</p>
+                              <p className={`mt-1 text-zinc-200 break-words ${compactCards ? "text-xs line-clamp-4" : "text-sm"}`}>{post.lookingFor || t("home.card.noDetailsProvided")}</p>
                             </div>
                           </div>
                         ) : (
@@ -918,19 +919,19 @@ export default function ScrimFinderApp() {
                             {post.topPicks && post.topPicks.length > 0 ? (
                               <div>
                                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">{t("home.card.topPicks")}</p>
-                                <p className="mt-1 text-sm text-zinc-200">{post.topPicks.map((pick) => translateRole(pick)).join(", ")}</p>
+                                <p className={`mt-1 text-zinc-200 break-words ${compactCards ? "text-xs" : "text-sm"}`}>{post.topPicks.map((pick) => translateRole(pick)).join(", ")}</p>
                               </div>
                             ) : null}
                             {post.tournaments && post.tournaments.length > 0 ? (
                               <div>
                                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">{t("home.card.tournamentsInterested")}</p>
-                                <p className="mt-1 text-sm text-zinc-200">{post.tournaments.join(", ")}</p>
+                                <p className={`mt-1 text-zinc-200 break-words ${compactCards ? "text-xs" : "text-sm"}`}>{post.tournaments.join(", ")}</p>
                               </div>
                             ) : null}
                             {post.lookingFor ? (
                               <div>
                                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">{t("home.card.aboutMe")}</p>
-                                <p className="mt-1 text-sm text-zinc-200">{post.lookingFor}</p>
+                                <p className={`mt-1 text-zinc-200 break-words ${compactCards ? "text-xs line-clamp-4" : "text-sm"}`}>{post.lookingFor}</p>
                               </div>
                             ) : null}
                           </div>
@@ -938,10 +939,10 @@ export default function ScrimFinderApp() {
                       </div>
 
                       {/* OPEN button */}
-                      <div className="flex items-center border-l border-zinc-800/90 px-5">
+                      <div className={`flex items-center border-l border-zinc-800/90 ${compactCards ? "px-3" : "px-5"}`}>
                         <Link
                           href={`/account/${encodeURIComponent(post.ownerUsername || post.leader)}`}
-                          className="rounded-xl bg-orange-500 px-6 py-2 text-base font-bold text-black transition hover:bg-orange-600"
+                          className={`rounded-xl bg-orange-500 font-bold text-black transition hover:bg-orange-600 ${compactCards ? "px-4 py-2 text-sm" : "px-6 py-2 text-base"}`}
                         >
                           {t("common.open")}
                         </Link>

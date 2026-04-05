@@ -228,6 +228,7 @@ export default function MatchFinderPage() {
     const normalizedFilter = scrimRankFilter.trim().toLowerCase();
     return posts.filter((post) => post.scrimRank.trim().toLowerCase() === normalizedFilter);
   }, [posts, scrimRankFilter]);
+  const compactCards = gridColumns === 4;
 
   const handleLogout = async () => {
     try {
@@ -494,18 +495,18 @@ export default function MatchFinderPage() {
                 });
 
               return (
-              <div key={post.id} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+              <div key={post.id} className={`rounded-2xl border border-zinc-800 bg-zinc-900 ${compactCards ? "p-3" : "p-4"}`}>
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="flex items-center gap-3">
                     {post.avatarUrl ? (
-                      <img src={post.avatarUrl} alt={`${post.teamName} avatar`} className="h-14 w-14 rounded-full border border-zinc-700 object-cover" />
+                      <img src={post.avatarUrl} alt={`${post.teamName} avatar`} className={`${compactCards ? "h-12 w-12" : "h-14 w-14"} rounded-full border border-zinc-700 object-cover`} />
                     ) : (
-                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-500/20 text-xl">👥</div>
+                      <div className={`flex items-center justify-center rounded-full bg-orange-500/20 ${compactCards ? "h-12 w-12 text-lg" : "h-14 w-14 text-xl"}`}>👥</div>
                     )}
                     <div>
-                      <p className="text-lg font-bold text-white">{post.teamName}</p>
-                      <p className="text-sm text-zinc-400">Manager: {post.managerUsername}</p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.16em] text-zinc-500">Posted {formatTimestamp(post.createdAt)}</p>
+                      <p className={`font-bold text-white ${compactCards ? "text-base" : "text-lg"}`}>{post.teamName}</p>
+                      <p className={`text-zinc-400 ${compactCards ? "text-xs" : "text-sm"}`}>Manager: {post.managerUsername}</p>
+                      <p className={`mt-1 uppercase tracking-[0.16em] text-zinc-500 ${compactCards ? "text-[10px]" : "text-xs"}`}>Posted {formatTimestamp(post.createdAt)}</p>
                     </div>
                   </div>
 
@@ -544,26 +545,26 @@ export default function MatchFinderPage() {
                 <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-4">
                   <div className="rounded-lg border border-zinc-700/60 bg-zinc-950/60 px-3 py-2">
                     <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Scrim Rank</p>
-                    <p className="mt-1 text-sm text-zinc-200">{post.scrimRank.toUpperCase()}</p>
+                    <p className={`mt-1 text-zinc-200 break-words ${compactCards ? "text-xs" : "text-sm"}`}>{post.scrimRank.toUpperCase()}</p>
                   </div>
                   <div className="rounded-lg border border-zinc-700/60 bg-zinc-950/60 px-3 py-2">
                     <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Region</p>
-                    <p className="mt-1 text-sm text-zinc-200">{post.region.length > 0 ? post.region.join(" • ") : "—"}</p>
+                    <p className={`mt-1 text-zinc-200 break-words ${compactCards ? "text-xs" : "text-sm"}`}>{post.region.length > 0 ? post.region.join(" • ") : "—"}</p>
                   </div>
                   <div className="rounded-lg border border-zinc-700/60 bg-zinc-950/60 px-3 py-2">
                     <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Tournaments</p>
-                    <p className="mt-1 text-sm text-zinc-200">{post.tournaments.length > 0 ? post.tournaments.join(", ") : "—"}</p>
+                    <p className={`mt-1 text-zinc-200 break-words ${compactCards ? "text-xs" : "text-sm"}`}>{post.tournaments.length > 0 ? post.tournaments.join(", ") : "—"}</p>
                   </div>
                   <div className="rounded-lg border border-zinc-700/60 bg-zinc-950/60 px-3 py-2">
                     <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Preferred Time</p>
-                    <p className="mt-1 text-sm text-zinc-200">{post.preferredTime}</p>
+                    <p className={`mt-1 text-zinc-200 break-words ${compactCards ? "text-xs" : "text-sm"}`}>{post.preferredTime}</p>
                   </div>
                 </div>
 
                 {post.notes ? (
                   <div className="mt-3 rounded-lg border border-zinc-700/60 bg-zinc-950/60 px-3 py-2">
                     <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Notes</p>
-                    <p className="mt-1 text-sm text-zinc-200">{post.notes}</p>
+                    <p className={`mt-1 text-zinc-200 break-words ${compactCards ? "text-xs line-clamp-4" : "text-sm"}`}>{post.notes}</p>
                   </div>
                 ) : null}
 

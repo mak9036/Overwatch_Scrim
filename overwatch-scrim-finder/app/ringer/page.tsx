@@ -241,6 +241,7 @@ export default function RingerPage() {
   const selectedTimeZoneLabel = preferredTimeZone
     ? `${getTimeZoneAbbreviation(preferredTimeZone)} (${preferredTimeZone})`
     : "UTC";
+  const compactCards = gridColumns === 4;
   const availabilitySummary = availableFrom && availableUntil
     ? `${formatTimeForDisplay(availableFrom, { timeZone: preferredTimeZone })} to ${formatTimeForDisplay(availableUntil, { timeZone: preferredTimeZone })} ${getTimeZoneAbbreviation(preferredTimeZone)}`
     : "Choose your start and end time";
@@ -401,11 +402,11 @@ export default function RingerPage() {
             <p className="text-sm text-zinc-500">No active ringer posts right now.</p>
           ) : (
             posts.map((post) => (
-              <div key={post.id} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+              <div key={post.id} className={`rounded-2xl border border-zinc-800 bg-zinc-900 ${compactCards ? "p-3" : "p-4"}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-lg font-bold text-white">{post.ownerUsername}</p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.16em] text-orange-300">
+                    <p className={`font-bold text-white ${compactCards ? "text-base" : "text-lg"}`}>{post.ownerUsername}</p>
+                    <p className={`mt-1 uppercase tracking-[0.16em] text-orange-300 ${compactCards ? "text-[10px]" : "text-xs"}`}>
                       Expires in {formatRemaining(post.expiresAt, now)}
                     </p>
                   </div>
@@ -435,22 +436,22 @@ export default function RingerPage() {
                 <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
                   <div className="rounded-lg border border-zinc-700/60 bg-zinc-950/60 px-3 py-2">
                     <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Main Role</p>
-                    <p className="mt-1 text-sm text-zinc-200">{post.mainRole.length > 0 ? formatRoleList(post.mainRole) : "—"}</p>
+                    <p className={`mt-1 text-zinc-200 break-words ${compactCards ? "text-xs" : "text-sm"}`}>{post.mainRole.length > 0 ? formatRoleList(post.mainRole) : "—"}</p>
                   </div>
                   <div className="rounded-lg border border-zinc-700/60 bg-zinc-950/60 px-3 py-2">
                     <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Scrim Rank</p>
-                    <p className="mt-1 text-sm text-zinc-200">{post.scrimRank.toUpperCase()}</p>
+                    <p className={`mt-1 text-zinc-200 break-words ${compactCards ? "text-xs" : "text-sm"}`}>{post.scrimRank.toUpperCase()}</p>
                   </div>
                   <div className="rounded-lg border border-zinc-700/60 bg-zinc-950/60 px-3 py-2">
                     <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">OW Rank</p>
-                    <p className="mt-1 text-sm text-zinc-200">{formatOwRank(post.owRank)}</p>
+                    <p className={`mt-1 text-zinc-200 break-words ${compactCards ? "text-xs" : "text-sm"}`}>{formatOwRank(post.owRank)}</p>
                   </div>
                 </div>
 
                 <div className="mt-3 rounded-lg border border-zinc-700/60 bg-zinc-950/60 px-3 py-2">
                   <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Free Time</p>
                   {post.availableFrom && post.availableUntil ? (
-                    <div className="mt-1 space-y-1 text-sm text-zinc-200">
+                    <div className={`mt-1 space-y-1 text-zinc-200 ${compactCards ? "text-xs" : "text-sm"}`}>
                       <p>
                         Poster time: {formatTimeForDisplay(post.availableFrom, { timeZone: post.preferredTimeZone || "UTC" })} - {formatTimeForDisplay(post.availableUntil, { timeZone: post.preferredTimeZone || "UTC" })}{" "}
                         ({post.preferredTimeZone ? `${getTimeZoneAbbreviation(post.preferredTimeZone)}${getTimeZoneAbbreviation(post.preferredTimeZone) !== post.preferredTimeZone ? ` • ${post.preferredTimeZone}` : ""}` : "UTC"})
@@ -461,7 +462,7 @@ export default function RingerPage() {
                       </p>
                     </div>
                   ) : (
-                    <p className="mt-1 text-sm text-zinc-200">{post.preferredTime || "—"}</p>
+                    <p className={`mt-1 text-zinc-200 ${compactCards ? "text-xs" : "text-sm"}`}>{post.preferredTime || "—"}</p>
                   )}
                 </div>
               </div>

@@ -172,6 +172,7 @@ function MessagesPageContent() {
   }
 
   const activeMessages = tab === "inbox" ? inbox : outbox;
+  const compactCards = gridColumns === 4;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.18),transparent_25%),linear-gradient(180deg,#060606_0%,#111114_45%,#09090b_100%)] px-4 py-6 text-white sm:px-6 sm:py-8">
@@ -313,14 +314,14 @@ function MessagesPageContent() {
                   return (
                     <article
                       key={message.id}
-                      className={`rounded-2xl border px-4 py-4 transition ${unread ? "border-orange-500/40 bg-orange-500/5" : "border-zinc-800 bg-zinc-900/60"}`}
+                      className={`rounded-2xl border transition ${compactCards ? "px-3 py-3" : "px-4 py-4"} ${unread ? "border-orange-500/40 bg-orange-500/5" : "border-zinc-800 bg-zinc-900/60"}`}
                     >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div>
-                          <p className="text-sm font-semibold text-zinc-200">
+                          <p className={`font-semibold text-zinc-200 ${compactCards ? "text-xs" : "text-sm"}`}>
                             {isInbox ? `From ${message.senderUsername}` : `To ${message.recipientUsername}`}
                           </p>
-                          <p className="mt-1 text-xs uppercase tracking-wide text-zinc-500">{formatTimestamp(message.createdAt)}</p>
+                          <p className={`mt-1 uppercase tracking-wide text-zinc-500 ${compactCards ? "text-[10px]" : "text-xs"}`}>{formatTimestamp(message.createdAt)}</p>
                         </div>
                         {unread ? (
                           <button
@@ -334,8 +335,8 @@ function MessagesPageContent() {
                           <span className="text-xs uppercase tracking-wide text-zinc-500">{isInbox ? "Read" : "Sent"}</span>
                         )}
                       </div>
-                      <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-zinc-300">{message.body}</p>
-                      <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <p className={`mt-4 whitespace-pre-wrap break-words text-zinc-300 ${compactCards ? "text-xs leading-5 line-clamp-6" : "text-sm leading-6"}`}>{message.body}</p>
+                      <div className={`mt-4 flex flex-wrap items-center ${compactCards ? "gap-1.5" : "gap-2"}`}>
                         {isInbox ? (
                           <button
                             type="button"
@@ -343,7 +344,7 @@ function MessagesPageContent() {
                               setRecipientUsername(message.senderUsername);
                               setTab("sent");
                             }}
-                            className="rounded-xl border border-zinc-700 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-200 transition hover:bg-zinc-800"
+                            className={`rounded-xl border border-zinc-700 font-semibold uppercase tracking-wide text-zinc-200 transition hover:bg-zinc-800 ${compactCards ? "px-2.5 py-1.5 text-[10px]" : "px-3 py-2 text-xs"}`}
                           >
                             Reply
                           </button>
@@ -352,7 +353,7 @@ function MessagesPageContent() {
                           type="button"
                           disabled={isDeleting}
                           onClick={() => deleteMessage(message.id)}
-                          className="rounded-xl border border-red-500/40 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-red-200 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                          className={`rounded-xl border border-red-500/40 font-semibold uppercase tracking-wide text-red-200 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60 ${compactCards ? "px-2.5 py-1.5 text-[10px]" : "px-3 py-2 text-xs"}`}
                         >
                           {isDeleting ? "Deleting..." : "Delete"}
                         </button>

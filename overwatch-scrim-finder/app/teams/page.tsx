@@ -107,7 +107,7 @@ function MemberAvatar({ member, size = "md" }: { member: TeamMemberEnriched; siz
 
 // ─── Team Card ────────────────────────────────────────────────────────────────
 
-function TeamCard({ team }: { team: TeamEnriched }) {
+function TeamCard({ team, compact = false }: { team: TeamEnriched; compact?: boolean }) {
   const [teamImgError, setTeamImgError] = useState(false);
   const ordered = sortedMembers(team.members);
   const playerCount = team.members.filter((m) => m.role === "player" || m.role === "shotcaller").length;
@@ -117,7 +117,7 @@ function TeamCard({ team }: { team: TeamEnriched }) {
   const rosterPreview = ordered.slice(0, 8);
 
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-[linear-gradient(160deg,rgba(30,24,26,0.98),rgba(18,15,18,1))] p-4 transition-all duration-200 hover:border-orange-500/50 hover:shadow-[0_0_24px_rgba(249,115,22,0.08)]">
+    <div className={`rounded-2xl border border-zinc-800 bg-[linear-gradient(160deg,rgba(30,24,26,0.98),rgba(18,15,18,1))] transition-all duration-200 hover:border-orange-500/50 hover:shadow-[0_0_24px_rgba(249,115,22,0.08)] ${compact ? "p-3" : "p-4"}`}>
       <div className="flex items-center gap-3">
         <div className="h-14 w-14 rounded-xl overflow-hidden shrink-0 border border-zinc-700 bg-zinc-800 flex items-center justify-center">
           {team.avatarUrl && !teamImgError ? (
@@ -134,8 +134,8 @@ function TeamCard({ team }: { team: TeamEnriched }) {
           )}
         </div>
         <div className="min-w-0">
-          <h3 className="text-lg font-black text-white truncate leading-tight">{team.name}</h3>
-          <p className="text-sm text-zinc-500 mt-0.5 truncate">
+          <h3 className={`font-black text-white truncate leading-tight ${compact ? "text-base" : "text-lg"}`}>{team.name}</h3>
+          <p className={`text-zinc-500 mt-0.5 truncate ${compact ? "text-xs" : "text-sm"}`}>
             Manager: <span className="text-zinc-300">{team.managerUsername}</span>
           </p>
         </div>
@@ -144,19 +144,19 @@ function TeamCard({ team }: { team: TeamEnriched }) {
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <div className="rounded-lg bg-zinc-900/80 border border-zinc-800 py-2 text-center">
           <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">Region</p>
-          <p className="text-sm font-bold text-zinc-100 truncate px-1">{regionLabel}</p>
+          <p className={`font-bold text-zinc-100 truncate px-1 ${compact ? "text-xs" : "text-sm"}`}>{regionLabel}</p>
         </div>
         <div className="rounded-lg bg-zinc-900/80 border border-zinc-800 py-2 text-center">
           <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">Scrim Rank</p>
-          <p className="text-sm font-bold text-orange-300 truncate px-1">{scrimRankLabel}</p>
+          <p className={`font-bold text-orange-300 truncate px-1 ${compact ? "text-xs" : "text-sm"}`}>{scrimRankLabel}</p>
         </div>
         <div className="rounded-lg bg-zinc-900/80 border border-zinc-800 py-2 text-center">
           <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">Players</p>
-          <p className="text-sm font-bold text-zinc-100">{playerCount}</p>
+          <p className={`font-bold text-zinc-100 ${compact ? "text-xs" : "text-sm"}`}>{playerCount}</p>
         </div>
         <div className="rounded-lg bg-zinc-900/80 border border-zinc-800 py-2 text-center">
           <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">Total</p>
-          <p className="text-sm font-bold text-zinc-100">{team.members.length}</p>
+          <p className={`font-bold text-zinc-100 ${compact ? "text-xs" : "text-sm"}`}>{team.members.length}</p>
         </div>
       </div>
 
@@ -173,7 +173,7 @@ function TeamCard({ team }: { team: TeamEnriched }) {
               </span>
             ))
           ) : (
-            <span className="text-sm text-zinc-600">No tournaments</span>
+            <span className={`text-zinc-600 ${compact ? "text-xs" : "text-sm"}`}>No tournaments</span>
           )}
         </div>
       </div>
@@ -200,12 +200,12 @@ function TeamCard({ team }: { team: TeamEnriched }) {
         </div>
       </div>
 
-      {team.bio ? <p className="mt-3 text-sm text-zinc-300 leading-relaxed line-clamp-3">{team.bio}</p> : null}
+      {team.bio ? <p className={`mt-3 text-zinc-300 leading-relaxed break-words ${compact ? "text-xs line-clamp-4" : "text-sm line-clamp-3"}`}>{team.bio}</p> : null}
 
       <div className="mt-4">
         <Link
           href={teamHref}
-          className="inline-flex w-full items-center justify-center rounded-xl border border-orange-500/40 bg-orange-500/12 px-4 py-2.5 text-sm font-black uppercase tracking-[0.14em] text-orange-200 transition hover:border-orange-400 hover:bg-orange-500/20 hover:text-white"
+          className={`inline-flex w-full items-center justify-center rounded-xl border border-orange-500/40 bg-orange-500/12 font-black uppercase tracking-[0.14em] text-orange-200 transition hover:border-orange-400 hover:bg-orange-500/20 hover:text-white ${compact ? "px-3 py-2 text-xs" : "px-4 py-2.5 text-sm"}`}
         >
           View Team
         </Link>
@@ -344,7 +344,7 @@ export default function TeamsPage() {
           ) : (
             <div className={`${gridColumns === 1 ? "space-y-4" : gridColumns === 2 ? "grid grid-cols-1 gap-4 md:grid-cols-2" : "grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"}`}>
               {filtered.map((team) => (
-                <TeamCard key={team.id} team={team} />
+                <TeamCard key={team.id} team={team} compact={gridColumns === 4} />
               ))}
             </div>
           )}
